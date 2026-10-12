@@ -1,6 +1,4 @@
-/* =====================================================================
-   storage.js — DB layer + notifikasi & pengumuman helper
-   ===================================================================== */
+/* storage.js — DB Layer */
 
 const DB = {
   get(k, d) {
@@ -11,10 +9,7 @@ const DB = {
   },
   set(k, v) {
     try { localStorage.setItem('etam_' + k, JSON.stringify(v)); }
-    catch (e) {
-      console.warn('Storage penuh', e);
-      showToast('Penyimpanan penuh! Hapus foto lama.', 'error');
-    }
+    catch (e) { showToast('Penyimpanan penuh', 'error'); }
   }
 };
 
@@ -28,7 +23,6 @@ function persist() {
   DB.set('lupa_password', LUPA_PASSWORD); DB.set('settings', APP_SETTINGS);
 }
 
-/* IndexedDB foto */
 const FotoDB = (() => {
   const DB_NAME = 'etam_foto_db';
   const STORE = 'photos';
@@ -96,69 +90,33 @@ function logAction(aksi, detail = {}) {
   DB.set('logs', LOGS);
 }
 
-/* ============ NOTIFIKASI HELPER ============ */
-
-/**
- * Kirim notifikasi ke user tertentu
- * @param {string} idUser - ID user penerima
- * @param {string} judul - Judul notifikasi
- * @param {string} isi - Isi notifikasi
- * @param {string} tipe - info / warning / success
- */
 function kirimNotif(idUser, judul, isi, tipe = 'info') {
   if (!idUser) return;
   NOTIFIKASI.push({
-    id_notif: uid('nt'),
-    id_user: idUser,
-    judul,
-    isi,
-    tipe,
-    dibaca: false,
-    created_at: new Date().toISOString()
+    id_notif: uid('nt'), id_user: idUser, judul, isi, tipe,
+    dibaca: false, created_at: new Date().toISOString()
   });
   if (NOTIFIKASI.length > 500) NOTIFIKASI = NOTIFIKASI.slice(-500);
   DB.set('notifikasi', NOTIFIKASI);
   updateNotifBadge();
 }
-
-/**
- * Kirim notifikasi ke semua anggota ekskul tertentu
- */
 function kirimNotifEkskul(idEkskul, judul, isi, tipe = 'info', kecualiUserId = null) {
   anggotaAktifOf(idEkskul).forEach(a => {
     if (a.id_user !== kecualiUserId) kirimNotif(a.id_user, judul, isi, tipe);
   });
 }
-
-/**
- * Kirim notifikasi ke semua user (broadcast)
- */
 function kirimNotifSemua(judul, isi, tipe = 'info') {
-  USERS.forEach(u => {
-    if (u.active) kirimNotif(u.id_user, judul, isi, tipe);
-  });
+  USERS.forEach(u => { if (u.active) kirimNotif(u.id_user, judul, isi, tipe); });
 }
-
-/**
- * Ambil notifikasi user yang sedang login
- */
 function notifSaya() {
   if (!CURRENT_USER) return [];
   return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user)
     .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 }
-
-/**
- * Hitung notif belum dibaca
- */
 function countNotifBelumDibaca() {
   if (!CURRENT_USER) return 0;
   return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user && !n.dibaca).length;
 }
-
-/**
- * Update badge di header
- */
 function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
@@ -170,8 +128,6 @@ function updateNotifBadge() {
     badge.classList.add('hidden');
   }
 }
-
-/* ============ SEED ============ */
 
 async function seedIfEmpty() {
   USERS = DB.get('users', null) || [];
@@ -185,7 +141,6 @@ async function seedIfEmpty() {
     }));
     DB.set('users', USERS);
   }
-
   EKSKUL = DB.get('ekskul', []) || [];
   PEMBINA = DB.get('pembina', []) || [];
   ANGGOTA = DB.get('anggota', []) || [];
@@ -208,4 +163,4 @@ window.kirimNotifEkskul = kirimNotifEkskul;
 window.kirimNotifSemua = kirimNotifSemua;
 window.notifSaya = notifSaya;
 window.countNotifBelumDibaca = countNotifBelumDibaca;
-window.updateNotifBadge = updateNotifBadge; 
+window.updateNotifBadge = updateNotifBadge;
