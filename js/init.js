@@ -1,8 +1,6 @@
-/* =====================================================================
-   init.js — Bootstrap
-   ===================================================================== */
+/* init.js — Bootstrap */
 
-async function loadFotosFromDB() {
+async function loadFotosFromDBInit() {
   for (const f of LAPORAN_FOTO) {
     if (!f.file_url || f.file_url.includes('PLACEHOLDER')) {
       try {
@@ -32,7 +30,7 @@ async function init() {
         CURRENT_EKSKUL_CTX = a.id_ekskul;
       }
     }
-    await loadFotosFromDB();
+    await loadFotosFromDBInit();
     enterApp();
   } else {
     localStorage.removeItem('etam_session');
@@ -43,18 +41,21 @@ async function init() {
   const y = document.getElementById('brand-year');
   if (y) y.textContent = new Date().getFullYear();
 
-  // Cek backup mingguan
+  // Setup header icons
+  const themeIcon = document.getElementById('header-theme-icon');
+  if (themeIcon) themeIcon.innerHTML = icon('theme', 16);
+  const notifIcon = document.getElementById('header-notif-icon');
+  if (notifIcon) notifIcon.innerHTML = icon('notifikasi', 18);
+
   cekBackupMingguan();
 }
 
-/* ============ BACKUP MINGGUAN OTOMATIS ============ */
 function cekBackupMingguan() {
   try {
     const last = localStorage.getItem('etam_last_backup');
     const now = Date.now();
     const satuMinggu = 7 * 24 * 60 * 60 * 1000;
     if (!last || (now - Number(last)) > satuMinggu) {
-      // Simpan backup ke localStorage (bukan file)
       const backup = {
         timestamp: new Date().toISOString(),
         users: USERS, ekskul: EKSKUL, pembina: PEMBINA, anggota: ANGGOTA,
@@ -62,7 +63,6 @@ function cekBackupMingguan() {
         kas_bayar: KAS_BAYAR, struktur: STRUKTUR_EKSKUL,
         pengumuman: PENGUMUMAN, konten: KONTEN, settings: APP_SETTINGS
       };
-      // Simpan 4 backup terakhir (rotasi)
       let backups = [];
       try { backups = JSON.parse(localStorage.getItem('etam_weekly_backups') || '[]'); } catch(e) {}
       backups.push(backup);
@@ -70,14 +70,10 @@ function cekBackupMingguan() {
       try {
         localStorage.setItem('etam_weekly_backups', JSON.stringify(backups));
         localStorage.setItem('etam_last_backup', String(now));
-      } catch(e) {
-        console.warn('Backup mingguan gagal: storage penuh');
-      }
+      } catch(e) {}
     }
-  } catch(e) { console.warn('Backup check error', e); }
+  } catch(e) {}
 }
-
-window.cekBackupMingguan = cekBackupMingguan;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
