@@ -1,6 +1,4 @@
-/* =====================================================================
-   nav.js — Navigasi Sidebar dengan SVG icons
-   ===================================================================== */
+/* nav.js — Sidebar Navigation */
 
 const NAV = {
   admin: [
@@ -97,24 +95,19 @@ function renderNav() {
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   const navEl = document.getElementById('nav-tabs');
   if (!navEl) return;
-
   const groups = {};
   tabs.forEach(t => {
     const g = t.group || 'Lainnya';
     if (!groups[g]) groups[g] = [];
     groups[g].push(t);
   });
-
-  const roleLabel = {
-    admin: 'Admin', guru: 'Guru', pelatih: 'Pelatih',
-    pengurus: 'Pengurus', murid: 'Siswa'
-  }[CURRENT_USER.role_sistem] || 'User';
+  const roleLabel = { admin:'Admin', guru:'Guru', pelatih:'Pelatih', pengurus:'Pengurus', murid:'Siswa' }[CURRENT_USER.role_sistem] || 'User';
 
   navEl.innerHTML = `
     <div class="sidebar-header">
       <div class="sidebar-logos">
-        <img src="https://iili.io/nBiviCX.png" alt="SMPN 10" class="sidebar-logo" onerror="this.style.display='none'">
-        <img src="https://iili.io/nVPEvv2.md.png" alt="ETAM" class="sidebar-logo" onerror="this.style.display='none'">
+        <img src="${LOGO_SMP}" alt="SMPN 10" class="sidebar-logo" onerror="this.style.display='none'">
+        <img src="${LOGO_ETAM}" alt="ETAM" class="sidebar-logo" onerror="this.style.display='none'">
       </div>
       <div>
         <p class="sidebar-brand-title">ETAM</p>
@@ -122,7 +115,6 @@ function renderNav() {
         <p class="sidebar-brand-school">SMP Negeri 10 Samarinda</p>
       </div>
     </div>
-
     <div class="sidebar-user">
       <div class="sidebar-user-info">
         ${CURRENT_USER.foto_profil_url
@@ -130,11 +122,10 @@ function renderNav() {
           : `<div class="sidebar-user-avatar ${avatarGradient(CURRENT_USER.id_user)}">${avatarInitials(CURRENT_USER.nama_lengkap)}</div>`}
         <div class="sidebar-user-text">
           <p class="sidebar-user-name">${esc(CURRENT_USER.nama_lengkap)}</p>
-          <p class="sidebar-user-role">${roleLabel}${CURRENT_USER._jabatan ? ' · ' + (JABATAN_LABEL[CURRENT_USER._jabatan] || '') : ''}</p>
+          <p class="sidebar-user-role">${roleLabel}${CURRENT_USER._jabatan ? ' - ' + (JABATAN_LABEL[CURRENT_USER._jabatan] || '') : ''}</p>
         </div>
       </div>
     </div>
-
     <nav class="sidebar-nav">
       ${Object.keys(groups).map(g => `
         <div class="sidebar-group">
@@ -148,7 +139,6 @@ function renderNav() {
         </div>
       `).join('')}
     </nav>
-
     <div class="sidebar-footer">
       <button class="sidebar-item sidebar-item-logout" onclick="logout()">
         <span class="sidebar-item-icon">${icon('logout', 18)}</span>
