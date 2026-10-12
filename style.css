@@ -739,3 +739,94 @@ html[data-theme="light"] .sidebar-item.active{color:#6D28D9;background:linear-gr
 
 .toast{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 12px 32px -8px rgba(0,0,0,.4);pointer-events:auto;animation:slideIn .25s ease forwards;max-width:340px}
 .toast-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:24px;height:24px;border-radius:6px;cursor:pointer;font-weight:800;font-size:12px}
+/* ============ SVG ICON STYLING ============ */
+.svg-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Icon di sidebar */
+.sidebar-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.sidebar-item-icon .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Icon di tombol */
+.btn .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Icon di header */
+.header-btn .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+.header-btn-icon .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Icon di notifikasi */
+.notif-icon .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Icon di toast */
+.toast .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+.toast-close .svg-icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Icon di chip */
+.chip .svg-icon {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+
+/* Icon di judul section */
+.card-header .svg-icon {
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+/* FAQ icon */
+.faq-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.faq-icon .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Icon di sidebar group */
+.sidebar-group-label .svg-icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Icon di stat card */
+.stat-card .svg-icon {
+  width: 14px;
+  height: 14px;
+}
