@@ -1,6 +1,4 @@
-/* =====================================================================
-   photo.js — Kompres, watermark GPS, signature
-   ===================================================================== */
+/* photo.js — Kompres, watermark GPS */
 
 function compressImage(file, maxW = 1280, quality = 0.72) {
   return new Promise((resolve, reject) => {
@@ -120,7 +118,7 @@ async function generateSignature(fileBlob) {
 
 async function processPhotoWithGeo(file, ekskulNama, userName) {
   const gps = await getCurrentLocation().catch(() => null);
-  if (!gps) throw new Error('Gagal mengambil lokasi. Aktifkan GPS & izinkan akses lokasi.');
+  if (!gps) throw new Error('Gagal mengambil lokasi. Aktifkan GPS dan izinkan akses lokasi.');
   sessionStorage.setItem('last_location', JSON.stringify(gps));
   const compressed = await compressImage(file, 1600, 0.75);
   const now = new Date();
@@ -131,11 +129,12 @@ async function processPhotoWithGeo(file, ekskulNama, userName) {
   const mapsUrl = `maps.google.com/?q=${gps.lat.toFixed(6)},${gps.lng.toFixed(6)}`;
   const signature = await generateSignature(file);
   const lines = [
-    `${koord} ${akurasi}`,
-    `${mapsUrl}`,
-    `${tgl} · ${jam} WITA`,
-    `${ekskulNama} — ${userName}`,
-    `${signature}`
+    `PIN   : ${koord} ${akurasi}`,
+    `MAPS  : ${mapsUrl}`,
+    `WAKTU : ${tgl} - ${jam} WITA`,
+    `EKSKUL: ${ekskulNama}`,
+    `USER  : ${userName}`,
+    `SIG   : ${signature}`
   ];
   const watermarked = await addWatermark(compressed, lines);
   return {
@@ -148,4 +147,4 @@ async function processPhotoWithGeo(file, ekskulNama, userName) {
 
 window.compressImage = compressImage;
 window.processPhotoWithGeo = processPhotoWithGeo;
-window.getCurrentLocation = getCurrentLocation; 
+window.getCurrentLocation = getCurrentLocation;
