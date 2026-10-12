@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<!-- ================= LOGIN ================= -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-art-bg">
     <div class="blob blob-1"></div>
@@ -56,27 +56,17 @@
 
       <div id="view-login">
         <p class="role-section-label">Masuk Sebagai</p>
-        <div class="role-tabs" role="tablist">
-          <button type="button" class="role-tab active" data-role="murid" onclick="selectLoginRole('murid')">
-            <span>Siswa</span>
-          </button>
-          <button type="button" class="role-tab" data-role="guru" onclick="selectLoginRole('guru')">
-            <span>Guru / Pelatih</span>
-          </button>
-          <button type="button" class="role-tab" data-role="admin" onclick="selectLoginRole('admin')">
-            <span>Admin</span>
-          </button>
+        <div class="role-tabs">
+          <button type="button" class="role-tab active" data-role="murid" onclick="selectLoginRole('murid')"><span>Siswa</span></button>
+          <button type="button" class="role-tab" data-role="guru" onclick="selectLoginRole('guru')"><span>Guru / Pelatih</span></button>
+          <button type="button" class="role-tab" data-role="admin" onclick="selectLoginRole('admin')"><span>Admin</span></button>
         </div>
         <p class="role-hint" id="login-role-hint">Masuk sebagai <b>Siswa</b></p>
         <form id="form-login" onsubmit="handleLogin(event)">
-          <div class="field-group">
-            <label class="field-label">Email / NIS</label>
-            <input type="text" id="login-email" class="field-input" placeholder="email atau NIS" required>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Password</label>
-            <input type="password" id="login-password" class="field-input" placeholder="Password" required>
-          </div>
+          <div class="field-group"><label class="field-label">Email / NIS</label>
+            <input type="text" id="login-email" class="field-input" placeholder="email atau NIS" required></div>
+          <div class="field-group"><label class="field-label">Password</label>
+            <input type="password" id="login-password" class="field-input" placeholder="Password" required></div>
           <div id="login-error" class="alert alert-error hidden"></div>
           <button type="submit" class="btn btn-primary btn-block">Masuk</button>
         </form>
@@ -88,14 +78,12 @@
         </div>
         <div class="login-footer">
           <span class="login-footer-label">Tema</span>
-          <button type="button" class="theme-toggle-btn" onclick="cycleTheme()">
-            <span id="theme-label">Otomatis</span>
-          </button>
+          <button type="button" class="theme-toggle-btn" onclick="cycleTheme()"><span id="theme-label">Otomatis</span></button>
         </div>
       </div>
 
       <div id="view-register" class="hidden">
-        <button type="button" class="back-btn" onclick="closeRegister()">← Kembali</button>
+        <button type="button" class="back-btn" onclick="closeRegister()">Kembali</button>
         <h2 class="register-title">Daftar Akun</h2>
         <div class="role-tabs" style="margin-bottom:14px">
           <button type="button" class="role-tab active" id="reg-tab-murid" onclick="selectRegRole('murid')"><span>Siswa</span></button>
@@ -107,20 +95,21 @@
           <div class="field-group"><label class="field-label">Email</label><input type="email" id="reg-email" class="field-input" required></div>
           <div id="reg-fields-murid">
             <div class="field-group"><label class="field-label">NIS</label><input type="text" id="reg-nis" class="field-input"></div>
-            <div class="field-group"><label class="field-label">NISN (opsional)</label><input type="text" id="reg-nisn" class="field-input"></div>
+            <div class="field-group"><label class="field-label">NISN</label><input type="text" id="reg-nisn" class="field-input"></div>
             <div class="field-group"><label class="field-label">Kelas</label>
               <select id="reg-kelas" class="field-input">
-                <option value="">Pilih Kelas</option>
-                <option>7A</option><option>7B</option><option>7C</option><option>7D</option><option>7E</option>
-                <option>7F</option><option>7G</option><option>7H</option><option>8A</option><option>8B</option>
-                <option>8C</option><option>8D</option><option>9A</option><option>9B</option><option>9C</option><option>9D</option>
+                <option value="">Pilih</option>
+                <option>7A</option><option>7B</option><option>7C</option><option>7D</option>
+                <option>7E</option><option>7F</option><option>7G</option><option>7H</option>
+                <option>8A</option><option>8B</option><option>8C</option><option>8D</option>
+                <option>9A</option><option>9B</option><option>9C</option><option>9D</option>
               </select></div>
           </div>
           <div id="reg-fields-guru" class="hidden">
             <div class="field-group"><label class="field-label">Tipe</label>
               <select id="reg-tipe-guru" class="field-input"><option value="guru">Guru</option><option value="pelatih">Pelatih</option></select></div>
             <div class="field-group"><label class="field-label">Ekskul</label>
-              <select id="reg-ekskul" class="field-input"><option value="">Pilih Ekskul</option></select></div>
+              <select id="reg-ekskul" class="field-input"><option value="">Pilih</option></select></div>
           </div>
           <div class="field-group"><label class="field-label">No. WhatsApp</label><input type="tel" id="reg-wa" class="field-input" required></div>
           <div class="field-group"><label class="field-label">Password</label><input type="password" id="reg-password" class="field-input" minlength="6" required></div>
@@ -131,7 +120,7 @@
       </div>
 
       <div id="view-forgot" class="hidden">
-        <button type="button" class="back-btn" onclick="closeForgot()">← Kembali</button>
+        <button type="button" class="back-btn" onclick="closeForgot()">Kembali</button>
         <h2 class="register-title">Lupa Password</h2>
         <p class="register-subtitle">Masukkan email atau NIS.</p>
         <form id="form-forgot" onsubmit="handleForgot(event)">
@@ -144,7 +133,7 @@
   </div>
 </div>
 
-<!-- ================= APP (SIDEBAR) ================= -->
+<!-- APP SIDEBAR -->
 <div id="app" class="hidden app-sidebar-layout">
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
 
@@ -165,11 +154,13 @@
         </div>
         <img src="https://iili.io/nVPEvv2.md.png" alt="Logo ETAM" class="top-logo top-logo-right">
         <div class="top-header-actions">
-          <button type="button" class="header-btn" onclick="cycleTheme()">
+          <button type="button" class="header-btn" onclick="cycleTheme()" title="Ganti Tema">
+            <span id="header-theme-icon"></span>
             <span id="theme-label-app" class="hide-mobile">Auto</span>
           </button>
-          <button type="button" class="header-btn header-btn-icon" onclick="showTab('notifikasi')" style="position:relative">
-            🔔<span id="notif-badge" class="notif-badge hidden">0</span>
+          <button type="button" class="header-btn header-btn-icon" onclick="showTab('notifikasi')" title="Notifikasi">
+            <span id="header-notif-icon"></span>
+            <span id="notif-badge" class="notif-badge hidden">0</span>
           </button>
         </div>
       </div>
@@ -183,6 +174,7 @@
 <div id="modal-root"></div>
 <div id="print-area"></div>
 
+<script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/storage.js"></script>
@@ -199,6 +191,7 @@
 <script src="js/routes-struktur.js"></script>
 <script src="js/routes-laporan.js"></script>
 <script src="js/init.js"></script>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
