@@ -1,8 +1,5 @@
-/* =====================================================================
-   routes-export.js — Export struktur PDF/PNG + statistik chart
-   ===================================================================== */
+/* routes-export.js — Export struktur PDF + Statistik */
 
-/* ============ EXPORT STRUKTUR ============ */
 window.exportStrukturPrint = (idEks) => {
   const e = ekskulById(idEks);
   if (!e) return;
@@ -41,7 +38,7 @@ window.exportStrukturPrint = (idEks) => {
       th{background:#f0f0f0}
     </style></head><body onload="window.print()">
     <h1>STRUKTUR PENGURUS ${esc(e.nama_ekskul).toUpperCase()}</h1>
-    <p class="sub">${esc(APP_SETTINGS.school_name)} · Periode ${esc(e.tahun_ajaran || '-')}</p>
+    <p class="sub">${esc(APP_SETTINGS.school_name)} - Periode ${esc(e.tahun_ajaran || '-')}</p>
     <div class="bagan">
       ${pembinaList.length ? `<div class="row">${pembinaList.map(p => `<div class="box">${box(p, 'pembina')}</div>`).join('')}</div><div style="width:2px;height:16px;background:#999"></div>` : ''}
       ${ketua ? `<div class="row"><div class="box">${box(userById(ketua.id_user), 'ketua')}</div></div><div style="width:2px;height:16px;background:#999"></div>` : ''}
@@ -73,7 +70,6 @@ window.exportStrukturPrint = (idEks) => {
   win.document.close();
 };
 
-/* ============ STATISTIK CHART (CSS BAR) ============ */
 ROUTES.statistik = el => {
   const r = CURRENT_USER.role_sistem;
   let ekskulIds = [];
@@ -82,7 +78,6 @@ ROUTES.statistik = el => {
   else if (r === 'admin') ekskulIds = EKSKUL.map(e => e.id_ekskul);
   else ekskulIds = userEkskulIds(CURRENT_USER.id_user);
 
-  // Stats per ekskul
   const stats = ekskulIds.map(id => {
     const e = ekskulById(id);
     if (!e) return null;
@@ -100,7 +95,7 @@ ROUTES.statistik = el => {
 
   el.innerHTML = `
     <div class="card mb-4">
-      <div class="card-header"><h2 class="font-display text-base">Statistik Kehadiran per Ekskul</h2></div>
+      <div class="card-header"><h2 class="font-display text-base">${icon('chart', 18)} Statistik Kehadiran</h2></div>
       <div class="card-body space-y-4">
         ${stats.length ? stats.map(s => `
           <div>
@@ -111,13 +106,13 @@ ROUTES.statistik = el => {
             <div class="progress-bar">
               <div class="progress-fill" style="width:${s.pct}%;background:${s.pct >= 75 ? 'linear-gradient(90deg,#10B981,#059669)' : s.pct >= 50 ? 'linear-gradient(90deg,#FBBF24,#F59E0B)' : 'linear-gradient(90deg,#EF4444,#DC2626)'}"></div>
             </div>
-            <p class="text-xs mt-1" style="color:var(--text-dim)">${s.anggota} anggota · ${s.jurnal} pertemuan</p>
+            <p class="text-xs mt-1" style="color:var(--text-dim)">${s.anggota} anggota - ${s.jurnal} pertemuan</p>
           </div>
         `).join('') : '<p class="text-sm text-center py-6" style="color:var(--text-dim)">Belum ada data.</p>'}
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><h2 class="font-display text-base">Progress Kas</h2></div>
+      <div class="card-header"><h2 class="font-display text-base">${icon('kas', 18)} Progress Kas</h2></div>
       <div class="card-body space-y-4">
         ${stats.length ? stats.map(s => `
           <div>
@@ -132,11 +127,4 @@ ROUTES.statistik = el => {
         `).join('') : '<p class="text-sm text-center py-6" style="color:var(--text-dim)">Belum ada data.</p>'}
       </div>
     </div>`;
-
-  // Tambahkan tombol export struktur di header jika di struktur
-  if (r === 'admin' && EKSKUL.length) {
-    // akan ditambahkan di route struktur
-  }
 };
-
-window.ROUTES = ROUTES;
