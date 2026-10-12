@@ -1,6 +1,4 @@
-/* =====================================================================
-   helpers.js — Utility
-   ===================================================================== */
+/* helpers.js — Utility */
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -8,36 +6,28 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const uid = p => (p || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const fmtRp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
 const todayStr = () => new Date().toISOString().split('T')[0];
-const fmtTanggal = d => {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
-};
-const fmtTanggalPanjang = d => {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-};
-const fmtDateTime = d => {
-  if (!d) return '-';
-  const x = new Date(d);
-  return x.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) + ' ' +
-         x.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
-};
+const fmtTanggal = d => !d ? '-' : new Date(d).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+const fmtTanggalPanjang = d => !d ? '-' : new Date(d).toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+const fmtDateTime = d => !d ? '-' : new Date(d).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date(d).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
 
-/* SHA-256 async */
 async function hashPwd(pwd) {
   try {
     const buf = new TextEncoder().encode(String(pwd));
     const hash = await crypto.subtle.digest('SHA-256', buf);
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (e) {
-    // Fallback djb2 kalau crypto tidak tersedia (file://)
     let h = 5381;
     for (let i = 0; i < pwd.length; i++) h = ((h << 5) + h + pwd.charCodeAt(i)) | 0;
     return 'djb2_' + (h >>> 0).toString(36);
   }
 }
 
-/* Toast — manual close, tidak auto hilang */
+function legacyHash(pwd) {
+  let h = 5381;
+  for (let i = 0; i < pwd.length; i++) h = ((h << 5) + h + pwd.charCodeAt(i)) | 0;
+  return 'h' + (h >>> 0).toString(36);
+}
+
 function showToast(msg, type = 'success') {
   const c = $('#toast-container');
   if (!c) return;
@@ -48,12 +38,15 @@ function showToast(msg, type = 'success') {
     : type === 'warning' ? 'linear-gradient(135deg,#FBBF24,#F59E0B)'
     : 'linear-gradient(135deg,#3B82F6,#8B5CF6)';
   t.style.background = bg;
-  t.innerHTML = `<span style="flex:1"><b>${type==='success'?'OK':type==='error'?'Gagal':type==='warning'?'Info':'Info'}:</b> ${esc(msg)}</span>
-    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
+  const iconName = type === 'success' ? 'check' : type === 'error' ? 'alert' : type === 'warning' ? 'alert' : 'info';
+  t.innerHTML = `
+    <span style="flex-shrink:0;display:flex;align-items:center">${icon(iconName, 18, '#fff')}</span>
+    <span style="flex:1">${esc(msg)}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()">${icon('close', 12, '#fff')}</button>
+  `;
   c.appendChild(t);
 }
 
-/* Lookup */
 const userById = id => USERS.find(u => u.id_user === id);
 const ekskulById = id => EKSKUL.find(e => e.id_ekskul === id);
 const userEkskulIds = id => PEMBINA.filter(p => p.id_user === id && p.status_akun === 'aktif').map(p => p.id_ekskul);
@@ -73,15 +66,13 @@ function getPertemuanClosed(idEkskul) {
 function getKasSetting(idEkskul) {
   return KAS_SETTING[idEkskul] || {
     nominal: 0, periode_tipe: 'pertemuan', periode_manual: 1,
-    keterangan: '', tanggal_kesepakatan: '', aktif: false, disepakati: false,
-    diaktifkan_oleh: '', diaktifkan_pada: '', updated_at: ''
+    keterangan: '', tanggal_kesepakatan: '', aktif: false, disepakati: false
   };
 }
 function getKasBayar(idUser, idEkskul, label) {
   return KAS_BAYAR.find(b => b.id_user === idUser && b.id_ekskul === idEkskul && b.periode_label === label);
 }
 
-/* Avatar */
 function avatarInitials(nama) {
   if (!nama) return '?';
   const parts = String(nama).trim().split(/\s+/);
@@ -100,7 +91,6 @@ function renderAvatar(user, size = 'md') {
   return `<div class="${cls} ${avatarGradient(user.id_user)}">${avatarInitials(user.nama_lengkap)}</div>`;
 }
 
-/* CSV */
 function downloadCSV(rows, filename) {
   const esc2 = v => {
     const s = String(v ?? '');
@@ -115,7 +105,6 @@ function downloadCSV(rows, filename) {
   showToast('CSV diunduh');
 }
 
-/* WhatsApp */
 function waLink(nomor, pesan) {
   if (!nomor) return '';
   let n = String(nomor).replace(/\D/g, '');
@@ -129,7 +118,6 @@ function openWA(nomor, pesan) {
   window.open(url, '_blank');
 }
 
-/* Theme */
 let themeMode = localStorage.getItem('themeMode') || 'auto';
 function applyTheme() {
   let actual = themeMode;
