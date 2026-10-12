@@ -1,6 +1,4 @@
-/* =====================================================================
-   config.js — State Global
-   ===================================================================== */
+/* config.js — State Global */
 
 const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const JABATAN_LABEL = {
@@ -24,13 +22,9 @@ const ADMIN_DEFAULT = {
   id_user: 'u_admin',
   nama_lengkap: 'Administrator ETAM',
   email: 'admin@smp10smd.com',
-  nis: '',
-  nisn: '',
-  no_wa: '',
-  role_sistem: 'admin',
-  kelas: '',
-  foto_profil_url: '',
-  active: true
+  nis: '', nisn: '', no_wa: '',
+  role_sistem: 'admin', kelas: '',
+  foto_profil_url: '', active: true
 };
 const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
 
@@ -41,4 +35,7 @@ const DEFAULT_SETTINGS = {
   dinas: 'DINAS PENDIDIKAN DAN KEBUDAYAAN',
   kota: 'PEMERINTAH KOTA SAMARINDA',
   alamat_sekolah: 'Jl. Untung Suropati No.01, Karang Asam Ulu, Sungai Kuning 75126'
-}; 
+};
+
+const LOGO_SMP = 'https://iili.io/nBiviCX.png';
+const LOGO_ETAM = 'https://iili.io/nVPEvv2.md.png';
