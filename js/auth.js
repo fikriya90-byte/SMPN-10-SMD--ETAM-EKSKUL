@@ -1,13 +1,9 @@
-/* =====================================================================
-   auth.js — Login, Register, Lupa Password
-   ===================================================================== */
+/* auth.js — Login, Register, Lupa Password */
 
 function selectLoginRole(role) {
   if (!role) return;
   loginRole = role;
-  document.querySelectorAll('.role-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.role === role);
-  });
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
   const labels = { murid:'Siswa', guru:'Guru / Pelatih', admin:'Admin' };
   const hintEl = document.getElementById('login-role-hint');
   if (hintEl) hintEl.innerHTML = 'Masuk sebagai <b>' + labels[role] + '</b>';
@@ -15,6 +11,19 @@ function selectLoginRole(role) {
   if (regRow) regRow.style.display = role === 'murid' ? 'flex' : 'none';
   const err = document.getElementById('login-error');
   if (err) err.classList.add('hidden');
+}
+
+function selectRegRole(role) {
+  regRole = role;
+  document.querySelectorAll('#view-register .role-tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('reg-tab-' + role);
+  if (tab) tab.classList.add('active');
+  document.getElementById('reg-fields-murid').classList.toggle('hidden', role !== 'murid');
+  document.getElementById('reg-fields-guru').classList.toggle('hidden', role !== 'guru');
+  if (role === 'guru') {
+    const sel = document.getElementById('reg-ekskul');
+    if (sel) sel.innerHTML = '<option value="">Pilih Ekskul</option>' + EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('');
+  }
 }
 
 function openRegister() {
@@ -51,13 +60,7 @@ async function handleLogin(ev) {
 
   const inputLow = input.toLowerCase();
   const hash = await hashPwd(pwd);
-  // Legacy djb2 hash (untuk data lama)
-  let legacyHash = null;
-  try {
-    let h = 5381;
-    for (let i = 0; i < pwd.length; i++) h = ((h << 5) + h + pwd.charCodeAt(i)) | 0;
-    legacyHash = 'h' + (h >>> 0).toString(36);
-  } catch(e) {}
+  const legacy = legacyHash(pwd);
 
   const u = USERS.find(x =>
     (x.email && x.email.toLowerCase() === inputLow) ||
@@ -65,15 +68,11 @@ async function handleLogin(ev) {
     (x.nisn && x.nisn === input)
   );
   if (!u) return fail('Email/NIS tidak terdaftar');
-  if (u.password_hash !== hash && u.password_hash !== legacyHash && u.password !== legacyHash && u.password !== hash)
+  if (u.password_hash !== hash && u.password_hash !== legacy && u.password !== legacy)
     return fail('Password salah');
   if (!u.active) return fail('Akun belum diverifikasi / dinonaktifkan');
 
-  const roleMap = {
-    murid: ['murid', 'pengurus'],
-    guru: ['guru', 'pelatih'],
-    admin: ['admin']
-  };
+  const roleMap = { murid: ['murid', 'pengurus'], guru: ['guru', 'pelatih'], admin: ['admin'] };
   if (!roleMap[loginRole].includes(u.role_sistem)) {
     const labels = { murid:'Siswa', guru:'Guru / Pelatih', admin:'Admin' };
     return fail('Akun ini bukan akun ' + labels[loginRole] + '.');
@@ -109,10 +108,7 @@ async function handleRegister(ev) {
   ev.preventDefault();
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim().toLowerCase();
-  const nis = document.getElementById('reg-nis').value.trim();
-  const nisn = document.getElementById('reg-nisn').value.trim();
   const wa = document.getElementById('reg-wa').value.trim();
-  const kelas = document.getElementById('reg-kelas').value;
   const pwd = document.getElementById('reg-password').value;
   const err = document.getElementById('reg-error');
   const info = document.getElementById('reg-info');
@@ -121,22 +117,48 @@ async function handleRegister(ev) {
   const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
 
   if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar');
-  if (USERS.some(u => u.nis && u.nis === nis)) return fail('NIS sudah terdaftar');
-  if (!kelas) return fail('Pilih kelas');
-
   const hash = await hashPwd(pwd);
-  USERS.push({
-    id_user: uid('u'), nama_lengkap: name, email, nis, nisn,
-    password_hash: hash, no_wa: wa, role_sistem: 'murid', kelas,
-    foto_profil_url: '', active: true, last_login: '',
-    created_at: new Date().toISOString()
-  });
-  persist();
-  logAction('register', { email, nis });
-  info.textContent = 'Pendaftaran berhasil! Silakan login.';
+
+  if (regRole === 'murid') {
+    const nis = document.getElementById('reg-nis').value.trim();
+    const nisn = document.getElementById('reg-nisn').value.trim();
+    const kelas = document.getElementById('reg-kelas').value;
+    if (USERS.some(u => u.nis && u.nis === nis)) return fail('NIS sudah terdaftar');
+    if (!kelas) return fail('Pilih kelas');
+    USERS.push({
+      id_user: uid('u'), nama_lengkap: name, email, nis, nisn,
+      password_hash: hash, no_wa: wa, role_sistem: 'murid', kelas,
+      foto_profil_url: '', active: true, last_login: '',
+      created_at: new Date().toISOString()
+    });
+    persist();
+    logAction('register_murid', { email, nis });
+    info.textContent = 'Pendaftaran berhasil! Silakan login.';
+  } else {
+    const tipe = document.getElementById('reg-tipe-guru').value;
+    const idEks = document.getElementById('reg-ekskul').value;
+    if (!idEks) return fail('Pilih ekskul yang dibina');
+    const newId = uid('u');
+    USERS.push({
+      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '',
+      password_hash: hash, no_wa: wa, role_sistem: tipe,
+      kelas: '', foto_profil_url: '', active: false, last_login: '',
+      created_at: new Date().toISOString()
+    });
+    PEMBINA.push({
+      id_pembina: uid('p'), id_user: newId, id_ekskul: idEks,
+      status_akun: 'pending', created_at: new Date().toISOString()
+    });
+    persist();
+    logAction('register_guru', { email, tipe, idEks });
+    const admin = USERS.find(u => u.role_sistem === 'admin');
+    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru', `${name} mendaftar sebagai ${tipe} untuk ekskul ${ekskulById(idEks)?.nama_ekskul}. Menunggu verifikasi.`, 'warning');
+    info.textContent = 'Pendaftaran terkirim! Tunggu verifikasi Admin.';
+  }
+
   info.classList.remove('hidden');
   document.getElementById('form-register').reset();
-  setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 1800);
+  setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 2500);
 }
 
 function handleForgot(ev) {
@@ -145,11 +167,8 @@ function handleForgot(ev) {
   const info = document.getElementById('forgot-info');
   if (!input) return;
   LUPA_PASSWORD.push({
-    id_permintaan: uid('lp'),
-    email_atau_nis: input,
-    status: 'pending',
-    created_at: new Date().toISOString(),
-    diselesaikan_oleh: ''
+    id_permintaan: uid('lp'), email_atau_nis: input,
+    status: 'pending', created_at: new Date().toISOString(), diselesaikan_oleh: ''
   });
   persist();
   info.textContent = 'Permintaan terkirim. Admin akan mereset password Anda via WhatsApp.';
@@ -174,15 +193,20 @@ function logout() {
 function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
-  const roleBadge = document.getElementById('role-badge-text');
-  if (roleBadge) {
-    const labels = { admin:'Admin', guru:'Guru', pelatih:'Pelatih', pengurus:'Pengurus', murid:'Siswa' };
-    roleBadge.textContent = (labels[CURRENT_USER.role_sistem] || 'User') +
-      (CURRENT_USER._jabatan ? ' · ' + (JABATAN_LABEL[CURRENT_USER._jabatan] || '') : '');
-  }
   renderNav();
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   showTab(tabs[0] ? tabs[0].key : 'dashboard');
+}
+
+async function loadFotosFromDB() {
+  for (const f of LAPORAN_FOTO) {
+    if (!f.file_url || f.file_url.includes('PLACEHOLDER')) {
+      try {
+        const data = await FotoDB.get(f.id_foto);
+        if (data) f.file_url = data;
+      } catch(e) {}
+    }
+  }
 }
 
 document.addEventListener('click', function(e) {
@@ -191,6 +215,7 @@ document.addEventListener('click', function(e) {
 }, false);
 
 window.selectLoginRole = selectLoginRole;
+window.selectRegRole = selectRegRole;
 window.openRegister = openRegister;
 window.closeRegister = closeRegister;
 window.openForgot = openForgot;
