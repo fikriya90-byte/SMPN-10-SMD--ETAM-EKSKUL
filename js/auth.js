@@ -1,9 +1,31 @@
-/* auth.js — Login, Register, Lupa Password */
+/* auth.js — Login, Register, Lupa Password, Toggle Password */
 
+/* ============ TOGGLE PASSWORD ============ */
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  // Update icon di button
+  if (btn) {
+    btn.innerHTML = icon(isHidden ? 'eyeOff' : 'eye', 18);
+    btn.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+  }
+}
+
+/* Set default icon untuk semua tombol password-toggle saat load */
+function initPasswordToggles() {
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.innerHTML = icon('eye', 18);
+    btn.setAttribute('aria-label', 'Tampilkan password');
+  });
+}
+
+/* ============ ROLE SELECTOR ============ */
 function selectLoginRole(role) {
   if (!role) return;
   loginRole = role;
-  document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
+  document.querySelectorAll('#view-login .role-tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
   const labels = { murid:'Siswa', guru:'Guru / Pelatih', admin:'Admin' };
   const hintEl = document.getElementById('login-role-hint');
   if (hintEl) hintEl.innerHTML = 'Masuk sebagai <b>' + labels[role] + '</b>';
@@ -22,10 +44,11 @@ function selectRegRole(role) {
   document.getElementById('reg-fields-guru').classList.toggle('hidden', role !== 'guru');
   if (role === 'guru') {
     const sel = document.getElementById('reg-ekskul');
-    if (sel) sel.innerHTML = '<option value="">Pilih Ekskul</option>' + EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('');
+    if (sel) sel.innerHTML = '<option value="">Pilih</option>' + EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('');
   }
 }
 
+/* ============ NAVIGASI LOGIN ============ */
 function openRegister() {
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('view-register').classList.remove('hidden');
@@ -50,6 +73,7 @@ function closeForgot() {
   if (fi) fi.classList.add('hidden');
 }
 
+/* ============ LOGIN ============ */
 async function handleLogin(ev) {
   ev.preventDefault();
   const input = document.getElementById('login-email').value.trim();
@@ -100,10 +124,12 @@ async function handleLogin(ev) {
   logAction('login', { user: u.nama_lengkap });
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
+  document.getElementById('login-password').type = 'password';
   await loadFotosFromDB();
   enterApp();
 }
 
+/* ============ REGISTER ============ */
 async function handleRegister(ev) {
   ev.preventDefault();
   const name = document.getElementById('reg-name').value.trim();
@@ -161,6 +187,7 @@ async function handleRegister(ev) {
   setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 2500);
 }
 
+/* ============ LUPA PASSWORD ============ */
 function handleForgot(ev) {
   ev.preventDefault();
   const input = document.getElementById('forgot-input').value.trim();
@@ -176,6 +203,7 @@ function handleForgot(ev) {
   document.getElementById('form-forgot').reset();
 }
 
+/* ============ LOGOUT ============ */
 function logout() {
   if (!confirm('Keluar dari akun ini?')) return;
   if (typeof stopQRScan === 'function') { try { stopQRScan(); } catch(e) {} }
@@ -190,6 +218,7 @@ function logout() {
   selectLoginRole('murid');
 }
 
+/* ============ ENTER APP ============ */
 function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
@@ -209,11 +238,22 @@ async function loadFotosFromDB() {
   }
 }
 
+/* ============ EVENT DELEGATION ============ */
 document.addEventListener('click', function(e) {
-  const roleTab = e.target.closest('.role-tab');
+  const roleTab = e.target.closest('#view-login .role-tab');
   if (roleTab && roleTab.dataset.role) { selectLoginRole(roleTab.dataset.role); return; }
 }, false);
 
+/* ============ INIT PASSWORD TOGGLES ============ */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPasswordToggles);
+} else {
+  initPasswordToggles();
+}
+
+/* ============ EXPORT ============ */
+window.togglePassword = togglePassword;
+window.initPasswordToggles = initPasswordToggles;
 window.selectLoginRole = selectLoginRole;
 window.selectRegRole = selectRegRole;
 window.openRegister = openRegister;
