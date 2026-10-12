@@ -63,10 +63,17 @@
         </div>
         <p class="role-hint" id="login-role-hint">Masuk sebagai <b>Siswa</b></p>
         <form id="form-login" onsubmit="handleLogin(event)">
-          <div class="field-group"><label class="field-label">Email / NIS</label>
-            <input type="text" id="login-email" class="field-input" placeholder="email atau NIS" required></div>
-          <div class="field-group"><label class="field-label">Password</label>
-            <input type="password" id="login-password" class="field-input" placeholder="Password" required></div>
+          <div class="field-group">
+            <label class="field-label">Email / NIS</label>
+            <input type="text" id="login-email" class="field-input" placeholder="email atau NIS" required>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Password</label>
+            <div class="password-wrap">
+              <input type="password" id="login-password" class="field-input" placeholder="Password" required>
+              <button type="button" class="password-toggle" onclick="togglePassword('login-password', this)" tabindex="-1"></button>
+            </div>
+          </div>
           <div id="login-error" class="alert alert-error hidden"></div>
           <button type="submit" class="btn btn-primary btn-block">Masuk</button>
         </form>
@@ -112,7 +119,13 @@
               <select id="reg-ekskul" class="field-input"><option value="">Pilih</option></select></div>
           </div>
           <div class="field-group"><label class="field-label">No. WhatsApp</label><input type="tel" id="reg-wa" class="field-input" required></div>
-          <div class="field-group"><label class="field-label">Password</label><input type="password" id="reg-password" class="field-input" minlength="6" required></div>
+          <div class="field-group">
+            <label class="field-label">Password</label>
+            <div class="password-wrap">
+              <input type="password" id="reg-password" class="field-input" minlength="6" required>
+              <button type="button" class="password-toggle" onclick="togglePassword('reg-password', this)" tabindex="-1"></button>
+            </div>
+          </div>
           <div id="reg-error" class="alert alert-error hidden"></div>
           <div id="reg-info" class="alert alert-info hidden"></div>
           <button type="submit" class="btn btn-primary btn-block">Daftar</button>
