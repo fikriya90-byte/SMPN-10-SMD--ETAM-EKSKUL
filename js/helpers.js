@@ -10,22 +10,19 @@ const fmtTanggal = d => !d ? '-' : new Date(d).toLocaleDateString('id-ID', { day
 const fmtTanggalPanjang = d => !d ? '-' : new Date(d).toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 const fmtDateTime = d => !d ? '-' : new Date(d).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date(d).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
 
-async function hashPwd(pwd) {
-  try {
-    const buf = new TextEncoder().encode(String(pwd));
-    const hash = await crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch (e) {
-    let h = 5381;
-    for (let i = 0; i < pwd.length; i++) h = ((h << 5) + h + pwd.charCodeAt(i)) | 0;
-    return 'djb2_' + (h >>> 0).toString(36);
+/* ============ HASH PASSWORD (SELALU KONSISTEN) ============ */
+/* Pakai djb2 — sinkron, deterministic, tidak butuh HTTPS/crypto API */
+function hashPwd(pwd) {
+  let h = 5381;
+  const s = String(pwd);
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   }
+  return 'h' + (h >>> 0).toString(36);
 }
 
 function legacyHash(pwd) {
-  let h = 5381;
-  for (let i = 0; i < pwd.length; i++) h = ((h << 5) + h + pwd.charCodeAt(i)) | 0;
-  return 'h' + (h >>> 0).toString(36);
+  return hashPwd(pwd);
 }
 
 function showToast(msg, type = 'success') {
@@ -71,25 +68,16 @@ function getKasBayar(idUser, idEkskul, label) {
 }
 
 /* ============ JADWAL RUTIN MULTI-BARIS ============ */
-
-/** Ambil jadwal sebagai array (setiap baris = 1 jadwal) */
 function getJadwalList(e) {
   if (!e || !e.jadwal_rutin) return [];
-  return String(e.jadwal_rutin)
-    .split('\n')
-    .map(s => s.trim())
-    .filter(Boolean);
+  return String(e.jadwal_rutin).split('\n').map(s => s.trim()).filter(Boolean);
 }
-
-/** Render jadwal ke HTML */
 function renderJadwalText(e, sep) {
   sep = sep || '<br>';
   const list = getJadwalList(e);
   if (!list.length) return '<span style="color:var(--text-dim)">-</span>';
   return list.map(j => esc(j)).join(sep);
 }
-
-/** Format jadwal inline (satu baris dengan separator) */
 function formatJadwalInline(e, sep) {
   sep = sep || ' • ';
   const list = getJadwalList(e);
@@ -97,31 +85,22 @@ function formatJadwalInline(e, sep) {
 }
 
 /* ============ JENIS SESI ============ */
-
-/** Label jenis sesi */
 function jenisSesiLabel(jenis) {
   return (typeof JENIS_SESI_LABEL !== 'undefined' && JENIS_SESI_LABEL[jenis]) || 'Latihan Rutin';
 }
-
-/** Warna jenis sesi */
 function jenisSesiColor(jenis) {
   return (typeof JENIS_SESI_COLOR !== 'undefined' && JENIS_SESI_COLOR[jenis]) || '#3B82F6';
 }
-
-/** Badge jenis sesi (HTML) */
 function badgeJenisSesi(jenis) {
   const label = jenisSesiLabel(jenis);
   const color = jenisSesiColor(jenis);
   return `<span class="badge-sesi" style="background:${color}20;color:${color};border:1px solid ${color}40">${esc(label)}</span>`;
 }
-
-/** Ambil sesi tambahan (non-rutin) untuk ekskul */
 function getSesiTambahan(idEkskul) {
   return JURNAL.filter(j => j.id_ekskul === idEkskul && j.jenis_sesi && j.jenis_sesi !== 'rutin');
 }
 
 /* ============ AVATAR ============ */
-
 function avatarInitials(nama) {
   if (!nama) return '?';
   const parts = String(nama).trim().split(/\s+/);
