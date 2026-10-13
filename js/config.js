@@ -1,6 +1,4 @@
-/* =====================================================================
-   config.js — State Global + Konstanta
-   ===================================================================== */
+/* config.js — State Global + Konstanta */
 
 const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
@@ -14,18 +12,6 @@ const JABATAN_LABEL = {
   pembina: 'Pembina / Pelatih'
 };
 
-/* ============ LEVEL STRUKTUR ============ */
-const LEVEL_LABEL = {
-  koordinator: 'Koordinator Ekstrakurikuler',
-  pembina: 'Pembina',
-  pelatih: 'Pelatih',
-  ketua: 'Ketua',
-  wakil: 'Wakil Ketua',
-  pengurus: 'Pengurus',
-  anggota: 'Anggota'
-};
-
-/* ============ JENIS SESI ============ */
 const JENIS_SESI_LABEL = {
   rutin: 'Latihan Rutin',
   tambahan: 'Latihan Tambahan',
@@ -35,22 +21,15 @@ const JENIS_SESI_LABEL = {
 };
 
 const JENIS_SESI_COLOR = {
-  rutin: '#3B82F6',
-  tambahan: '#8B5CF6',
-  lomba: '#EC4899',
-  pertemuan: '#10B981',
-  lainnya: '#F59E0B'
+  rutin: '#3B82F6', tambahan: '#8B5CF6', lomba: '#EC4899',
+  pertemuan: '#10B981', lainnya: '#F59E0B'
 };
 
 const JENIS_SESI_ICON = {
-  rutin: 'kalender',
-  tambahan: 'plus',
-  lomba: 'star',
-  pertemuan: 'users',
-  lainnya: 'info'
+  rutin: 'kalender', tambahan: 'plus', lomba: 'star',
+  pertemuan: 'users', lainnya: 'info'
 };
 
-/* ============ STATE GLOBAL ============ */
 let USERS = [];
 let EKSKUL = [];
 let PEMBINA = [];
@@ -76,26 +55,22 @@ let QR_SCANNER = null;
 let loginRole = 'murid';
 let regRole = 'murid';
 
-/* ============ ADMIN DEFAULT ============ */
 const ADMIN_DEFAULT = {
   id_user: 'u_admin',
   nama_lengkap: 'Administrator ETAM',
   email: 'admin@smp10smd.com',
-  nis: '',
-  nisn: '',
-  no_wa: '',
-  role_sistem: 'admin',
-  kelas: '',
-  foto_profil_url: '',
-  active: true
+  nis: '', nisn: '', nip: '', no_wa: '',
+  role_sistem: 'admin', kelas: '',
+  foto_profil_url: '', active: true
 };
 
 const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
 
-/* ============ DEFAULT SETTINGS ============ */
 const DEFAULT_SETTINGS = {
   school_name: 'UPT SMP Negeri 10 Samarinda',
   kepala_upt: 'Tuti Susandra Dewi, S.Pd., M.Pd',
+  kepala_nip: '',
+  kepala_wa: '',
   koordinator_ekskul: 'Muhammad Ibnu Syamwardana, S.Pd., M.Pd',
   koordinator_nip: '',
   koordinator_wa: '',
@@ -105,6 +80,5 @@ const DEFAULT_SETTINGS = {
   alamat_sekolah: 'Jl. Untung Suropati No.01, Karang Asam Ulu, Sungai Kuning 75126'
 };
 
-/* ============ LOGO ============ */
 const LOGO_SMP = 'https://iili.io/nBiviCX.png';
 const LOGO_ETAM = 'https://iili.io/nVPEvv2.md.png';
