@@ -7,23 +7,15 @@
 <title>ETAM — Ekstrakurikuler Terpadu Absensi Murid</title>
 <link rel="manifest" href="./manifest.json">
 
-<!-- Firebase SDK (WAJIB) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<!-- QR Code generator & scanner -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-<!-- Leaflet peta -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -137,7 +129,7 @@
         </div>
       </div>
 
-      <!-- ================= REGISTER VIEW ================= -->
+      <!-- ================= REGISTER VIEW (SISWA SAJA) ================= -->
       <div id="view-register" class="hidden">
         <button type="button" class="back-btn" onclick="closeRegister()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -145,81 +137,52 @@
           </svg>
           Kembali ke Login
         </button>
-        <h2 class="register-title">Daftar Akun</h2>
-        <p class="register-subtitle">Pilih tipe akun Anda.</p>
-
-        <div class="role-tabs" style="margin-bottom:14px">
-          <button type="button" class="role-tab active" id="reg-tab-murid" onclick="selectRegRole('murid')">
-            <span>Siswa</span>
-          </button>
-          <button type="button" class="role-tab" id="reg-tab-guru" onclick="selectRegRole('guru')">
-            <span>Guru / Pelatih</span>
-          </button>
-          <button type="button" class="role-tab" style="opacity:.4;pointer-events:none">
-            <span>Admin</span>
-          </button>
-        </div>
+        <h2 class="register-title">Daftar Akun Siswa</h2>
+        <p class="register-subtitle">Isi data diri &amp; pilih ekskul. Akun akan diverifikasi oleh Pembina/Pelatih ekskul.</p>
 
         <form id="form-register" onsubmit="handleRegister(event)">
           <div class="field-group">
             <label class="field-label">Nama Lengkap</label>
-            <input type="text" id="reg-name" class="field-input" placeholder="Nama lengkap & gelar" required>
+            <input type="text" id="reg-name" class="field-input" placeholder="Nama lengkap" required>
           </div>
           <div class="field-group">
             <label class="field-label">Email</label>
             <input type="email" id="reg-email" class="field-input" placeholder="nama@email.com" required>
           </div>
-
-          <!-- FIELD MURID -->
-          <div id="reg-fields-murid">
-            <div class="field-group">
-              <label class="field-label">NIS</label>
-              <input type="text" id="reg-nis" class="field-input" placeholder="Nomor Induk Siswa">
-            </div>
-            <div class="field-group">
-              <label class="field-label">NISN (opsional)</label>
-              <input type="text" id="reg-nisn" class="field-input" placeholder="NISN">
-            </div>
-            <div class="field-group">
-              <label class="field-label">Kelas</label>
-              <select id="reg-kelas" class="field-input">
-                <option value="">Pilih Kelas</option>
-                <option>7A</option><option>7B</option><option>7C</option><option>7D</option><option>7E</option>
-                <option>7F</option><option>7G</option><option>7H</option><option>7I</option><option>7J</option>
-                <option>8A</option><option>8B</option><option>8C</option><option>8D</option><option>8E</option>
-                <option>8F</option><option>8G</option><option>8H</option><option>8I</option><option>8J</option>
-                <option>9A</option><option>9B</option><option>9C</option><option>9D</option><option>9E</option>
-                <option>9F</option><option>9G</option><option>9H</option><option>9I</option><option>9J</option>
-              </select>
-            </div>
+          <div class="field-group">
+            <label class="field-label">NIS</label>
+            <input type="text" id="reg-nis" class="field-input" placeholder="Nomor Induk Siswa">
           </div>
-
-          <!-- FIELD GURU/PELATIH -->
-          <div id="reg-fields-guru" class="hidden">
-            <div class="field-group">
-              <label class="field-label">Tipe</label>
-              <select id="reg-tipe-guru" class="field-input">
-                <option value="guru">Guru</option>
-                <option value="pelatih">Pelatih</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label">NIP (opsional)</label>
-              <input type="text" id="reg-nip" class="field-input" placeholder="Kosongkan jika tidak ada NIP">
-              <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika belum ada NIP / bukan PNS</p>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Ekskul yang Dibina</label>
-              <select id="reg-ekskul" class="field-input">
-                <option value="">Pilih Ekskul</option>
-              </select>
-            </div>
+          <div class="field-group">
+            <label class="field-label">NISN (opsional)</label>
+            <input type="text" id="reg-nisn" class="field-input" placeholder="NISN">
           </div>
-
+          <div class="field-group">
+            <label class="field-label">Kelas</label>
+            <select id="reg-kelas" class="field-input" required>
+              <option value="">Pilih Kelas</option>
+              <option>7A</option><option>7B</option><option>7C</option><option>7D</option><option>7E</option>
+              <option>7F</option><option>7G</option><option>7H</option><option>7I</option><option>7J</option>
+              <option>8A</option><option>8B</option><option>8C</option><option>8D</option><option>8E</option>
+              <option>8F</option><option>8G</option><option>8H</option><option>8I</option><option>8J</option>
+              <option>9A</option><option>9B</option><option>9C</option><option>9D</option><option>9E</option>
+              <option>9F</option><option>9G</option><option>9H</option><option>9I</option><option>9J</option>
+            </select>
+          </div>
           <div class="field-group">
             <label class="field-label">No. WhatsApp</label>
             <input type="tel" id="reg-wa" class="field-input" placeholder="08xx" required>
           </div>
+
+          <!-- PILIH EKSKUL -->
+          <div class="field-group">
+            <label class="field-label">Pilih Ekskul yang Ingin Diikuti <span style="color:#F87171">*</span></label>
+            <p class="text-xs" style="color:var(--text-dim);margin-bottom:8px">Bisa pilih lebih dari satu ekskul</p>
+            <div id="reg-ekskul-list" class="pilih-ekskul-list">
+              <p class="text-xs text-center py-3" style="color:var(--text-dim)">Memuat ekskul...</p>
+            </div>
+          </div>
+
           <div class="field-group">
             <label class="field-label">Password</label>
             <div class="password-wrap">
@@ -236,6 +199,12 @@
             </svg>
           </button>
         </form>
+
+        <div class="alert alert-info" style="margin-top:14px;font-size:12px;line-height:1.6">
+          <b>ℹ️ Info Pendaftaran:</b><br>
+          • <b>Siswa</b>: daftar mandiri di sini, akun akan diverifikasi Pembina/Pelatih<br>
+          • <b>Guru/Pelatih</b>: akun dibuatkan oleh <b>Admin</b>. Hubungi Admin untuk mendaftar
+        </div>
       </div>
 
       <!-- ================= FORGOT PASSWORD VIEW ================= -->
@@ -271,25 +240,14 @@
   </div>
 </div>
 
-<!-- ================= APP (SIDEBAR LAYOUT) ================= -->
+<!-- ================= APP ================= -->
 <div id="app" class="hidden app-sidebar-layout">
-
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
-
-  <aside id="sidebar" class="sidebar">
-    <div id="nav-tabs"></div>
-  </aside>
-
+  <aside id="sidebar" class="sidebar"><div id="nav-tabs"></div></aside>
   <div class="main-wrapper">
-
-    <!-- HEADER -->
     <header class="top-header">
       <div class="top-header-inner">
-        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
-          <span></span><span></span><span></span>
-        </button>
-
-        <!-- IDENTITAS ETAM -->
+        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
         <div class="brand-block">
           <img src="https://iili.io/nVPEvv2.md.png" alt="ETAM" class="brand-logo-etam">
           <div class="brand-text">
@@ -297,11 +255,7 @@
             <p class="brand-tagline">Ekstrakurikuler Terpadu Absensi Murid</p>
           </div>
         </div>
-
-        <!-- KONTEKS EKSKUL AKTIF -->
         <div class="context-block" id="context-block"></div>
-
-        <!-- ACTIONS -->
         <div class="top-header-actions">
           <button type="button" class="header-btn" onclick="cycleTheme()" title="Ganti Tema">
             <span id="header-theme-icon"></span>
@@ -314,11 +268,8 @@
         </div>
       </div>
     </header>
-
-    <!-- MAIN CONTENT -->
     <main class="main-content" id="main-content"></main>
   </div>
-
   <div id="toast-container" class="toast-container"></div>
 </div>
 
@@ -326,25 +277,14 @@
 <div id="print-area"></div>
 
 <!-- ================= SCRIPTS ================= -->
-<!-- URUTAN PENTING: JANGAN DIUBAH -->
-
-<!-- 1. Firebase Config — HARUS PALING ATAS -->
 <script src="js/firebase-config.js"></script>
-
-<!-- 2. App Config (konstanta global) -->
 <script src="js/config.js"></script>
-
-<!-- 3. Utilities -->
 <script src="js/icons.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/photo.js"></script>
-
-<!-- 4. Auth & Nav -->
 <script src="js/auth.js"></script>
 <script src="js/nav.js"></script>
-
-<!-- 5. Routes -->
 <script src="js/routes-notifikasi.js"></script>
 <script src="js/routes-password.js"></script>
 <script src="js/routes-export.js"></script>
@@ -357,9 +297,8 @@
 <script src="js/routes-murid.js"></script>
 <script src="js/routes-kas.js"></script>
 <script src="js/routes-penilaian.js"></script>
+<script src="js/routes-verifikasi-siswa.js"></script>
 <script src="js/routes-laporan.js"></script>
-
-<!-- 6. Bootstrap (paling akhir) -->
 <script src="js/init.js"></script>
 
 <script>
