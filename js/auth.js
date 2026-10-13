@@ -1,5 +1,5 @@
 /* =====================================================================
-   auth.js — Login, Register, Lupa Password via Firebase Auth
+   auth.js — Login, Register, Lupa Password
    ===================================================================== */
 
 /* ============ ROLE SELECTOR ============ */
@@ -29,7 +29,6 @@ function selectRegRole(role) {
   }
 }
 
-/* ============ VIEW NAVIGATION ============ */
 function openRegister() {
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('view-register').classList.remove('hidden');
@@ -55,7 +54,7 @@ function closeForgot() {
 }
 
 /* ================================================================
-   LOGIN — Firebase Auth (FIXED: Auto-create local user jika login via Firebase)
+   LOGIN — dengan fallback Firebase
    ================================================================ */
 async function handleLogin(ev) {
   ev.preventDefault();
@@ -68,65 +67,57 @@ async function handleLogin(ev) {
   if (!input) return fail('Isi email / NIS / NIP');
   if (!pwd) return fail('Isi password');
 
-  // Cari user di data lokal
   const inputLow = input.toLowerCase();
+
+  // 1. Cari user di data lokal
   let userRec = USERS.find(x =>
     (x.email && x.email.toLowerCase() === inputLow) ||
     (x.nis && x.nis === input) ||
     (x.nip && x.nip === input)
   );
 
-  // ============ LOGIKA BARU: FALLBACK KE FIREBASE ============
+  // 2. Jika tidak ada di lokal, coba langsung ke Firebase
   if (!userRec) {
-    // Jika tidak ada di lokal, coba login langsung ke Firebase
+    // Jika input bukan format email, langsung tolak
+    if (!input.includes('@')) {
+      return fail('Email/NIS/NIP tidak terdaftar');
+    }
     showToast('Memverifikasi ke Firebase...');
     const result = await fbLogin(input, pwd);
-    
-    if (result.ok) {
-      // Jika berhasil login di Firebase, buat data lokal secara otomatis
-      userRec = {
-        id_user: 'u_' + result.user.uid,
-        nama_lengkap: result.user.email.split('@')[0], // Nama sementara dari email
-        email: result.user.email,
-        nis: '',
-        nisn: '',
-        nip: '',
-        password_hash: '', // Password dikelola Firebase
-        no_wa: '',
-        role_sistem: loginRole, // Sesuaikan dengan tab yang dipilih (murid/guru/admin)
-        kelas: '',
-        foto_profil_url: '',
-        active: true,
-        last_login: '',
-        firebase_uid: result.user.uid,
-        created_at: new Date().toISOString()
-      };
-      
-      USERS.push(userRec);
-      persist();
-      console.log('[ETAM] User baru dari Firebase berhasil ditambahkan ke localStorage:', userRec.email);
-      
-      // Log aktivitas
-      logAction('auto_register_local', { email: userRec.email, firebase_uid: result.user.uid });
-    } else {
-      return fail(result.msg || 'Email/NIS/NIP tidak terdaftar atau password salah');
-    }
+    if (!result.ok) return fail(result.msg);
+
+    // Auto-buat data lokal
+    userRec = {
+      id_user: 'u_' + result.user.uid,
+      nama_lengkap: result.user.email.split('@')[0],
+      email: result.user.email,
+      nis: '', nisn: '', nip: '',
+      password_hash: '',
+      no_wa: '',
+      role_sistem: loginRole,
+      kelas: '',
+      foto_profil_url: '',
+      active: true,
+      last_login: '',
+      firebase_uid: result.user.uid,
+      created_at: new Date().toISOString()
+    };
+    USERS.push(userRec);
+    persist();
+    logAction('auto_register_local', { email: userRec.email });
   } else {
-    // Jika user ada di lokal, verifikasi password ke Firebase
+    // User ada di lokal → verifikasi password ke Firebase
     if (!userRec.email) return fail('Akun ini tidak memiliki email');
-    
     showToast('Memverifikasi...');
     const result = await fbLogin(userRec.email, pwd);
     if (!result.ok) return fail(result.msg);
-
-    // Pastikan firebase_uid tersinkronisasi
     if (!userRec.firebase_uid) {
       userRec.firebase_uid = result.user.uid;
       persist();
     }
   }
 
-  // ============ CEK ROLE ============
+  // 3. Cek role sesuai tab
   const roleMap = {
     murid: ['murid', 'pengurus'],
     guru: ['guru', 'pelatih'],
@@ -143,25 +134,18 @@ async function handleLogin(ev) {
     return fail('Akun belum diverifikasi / dinonaktifkan');
   }
 
-  if ((userRec.role_sistem === 'guru' || userRec.role_sistem === 'pelatih') &&
-      PEMBINA.some(p => p.id_user === userRec.id_user && p.status_akun === 'pending')) {
-    await fbLogout();
-    return fail('Akun Anda menunggu verifikasi Admin');
-  }
-
-  // Set current user
+  // 4. Set current user
   CURRENT_USER = Object.assign({}, userRec);
   CURRENT_USER.last_login = new Date().toISOString();
   CURRENT_USER._firebase_uid = userRec.firebase_uid;
 
-  // Update data lokal
   const uRec = USERS.find(x => x.id_user === userRec.id_user);
   if (uRec) {
     uRec.last_login = CURRENT_USER.last_login;
     persist();
   }
 
-  // Cek jabatan pengurus
+  // 5. Cek jabatan pengurus
   if (userRec.role_sistem === 'murid') {
     const a = ANGGOTA.find(x =>
       x.id_user === userRec.id_user &&
@@ -187,7 +171,7 @@ async function handleLogin(ev) {
 }
 
 /* ================================================================
-   REGISTER — Firebase Auth
+   REGISTER
    ================================================================ */
 async function handleRegister(ev) {
   ev.preventDefault();
@@ -205,18 +189,14 @@ async function handleRegister(ev) {
   if (!email) return fail('Email wajib diisi');
   if (!wa) return fail('No. WhatsApp wajib diisi');
   if (pwd.length < 6) return fail('Password minimal 6 karakter');
-  if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar di sistem');
+  if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar');
 
   if (regRole === 'murid') {
-    const nis = document.getElementById('reg-nis').value.trim();
     const kelas = document.getElementById('reg-kelas').value;
     if (!kelas) return fail('Pilih kelas');
-    if (nis && USERS.some(u => u.nis && u.nis === nis)) return fail('NIS sudah terdaftar');
   } else {
     const idEks = document.getElementById('reg-ekskul').value;
-    const nip = (document.getElementById('reg-nip')?.value || '').trim();
     if (!idEks) return fail('Pilih ekskul yang dibina');
-    if (nip && USERS.some(u => u.nip && u.nip === nip)) return fail('NIP sudah terdaftar');
   }
 
   showToast('Mendaftarkan akun...');
@@ -228,122 +208,65 @@ async function handleRegister(ev) {
     const nis = document.getElementById('reg-nis').value.trim();
     const nisn = document.getElementById('reg-nisn').value.trim();
     const kelas = document.getElementById('reg-kelas').value;
-
     USERS.push({
-      id_user: uid('u'),
-      nama_lengkap: name,
-      email,
-      nis,
-      nisn,
-      nip: '',
-      password_hash: await hashPwd(pwd),
-      no_wa: wa,
-      role_sistem: 'murid',
-      kelas,
-      foto_profil_url: '',
-      active: true,
-      last_login: '',
-      firebase_uid: firebaseUid,
-      created_at: new Date().toISOString()
+      id_user: uid('u'), nama_lengkap: name, email, nis, nisn, nip: '',
+      password_hash: await hashPwd(pwd), no_wa: wa, role_sistem: 'murid',
+      kelas, foto_profil_url: '', active: true, last_login: '',
+      firebase_uid: firebaseUid, created_at: new Date().toISOString()
     });
     persist();
-    logAction('register_murid', { email, nis, firebase_uid: firebaseUid });
+    logAction('register_murid', { email, nis });
     info.textContent = 'Pendaftaran berhasil! Silakan login.';
   } else {
     const tipe = document.getElementById('reg-tipe-guru').value;
     const idEks = document.getElementById('reg-ekskul').value;
     const nip = (document.getElementById('reg-nip')?.value || '').trim();
     const newId = uid('u');
-
     USERS.push({
-      id_user: newId,
-      nama_lengkap: name,
-      email,
-      nis: '',
-      nisn: '',
-      nip,
-      password_hash: await hashPwd(pwd),
-      no_wa: wa,
-      role_sistem: tipe,
-      kelas: '',
-      foto_profil_url: '',
-      active: false,
-      last_login: '',
-      firebase_uid: firebaseUid,
-      created_at: new Date().toISOString()
+      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '', nip,
+      password_hash: await hashPwd(pwd), no_wa: wa, role_sistem: tipe,
+      kelas: '', foto_profil_url: '', active: false, last_login: '',
+      firebase_uid: firebaseUid, created_at: new Date().toISOString()
     });
     PEMBINA.push({
-      id_pembina: uid('p'),
-      id_user: newId,
-      id_ekskul: idEks,
-      status_akun: 'pending',
-      created_at: new Date().toISOString()
+      id_pembina: uid('p'), id_user: newId, id_ekskul: idEks,
+      status_akun: 'pending', created_at: new Date().toISOString()
     });
     persist();
-    logAction('register_guru', { email, tipe, idEks, nip, firebase_uid: firebaseUid });
-
+    logAction('register_guru', { email, tipe, idEks });
     const admin = USERS.find(u => u.role_sistem === 'admin');
-    if (admin) {
-      kirimNotif(
-        admin.id_user,
-        'Pendaftaran Guru Baru',
-        `${name} mendaftar sebagai ${tipe} untuk ekskul ${ekskulById(idEks)?.nama_ekskul}. Menunggu verifikasi.`,
-        'warning',
-        { tab: 'pembina' }
-      );
-    }
+    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru',
+      `${name} mendaftar sebagai ${tipe}. Menunggu verifikasi.`, 'warning', { tab: 'pembina' });
     info.textContent = 'Pendaftaran terkirim! Tunggu verifikasi Admin.';
   }
 
   info.classList.remove('hidden');
   document.getElementById('form-register').reset();
-
   await fbLogout();
-
-  setTimeout(() => {
-    closeRegister();
-    selectLoginRole('murid');
-  }, 2500);
+  setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 2500);
 }
 
 /* ================================================================
-   LUPA PASSWORD — Kirim email reset via Firebase
+   LUPA PASSWORD
    ================================================================ */
 async function handleForgot(ev) {
   ev.preventDefault();
   const input = document.getElementById('forgot-input').value.trim();
   const info = document.getElementById('forgot-info');
   if (!input) return;
-
   info.classList.remove('hidden');
   info.className = 'alert alert-info';
-  info.textContent = 'Memproses permintaan...';
+  info.textContent = 'Memproses...';
 
   const inputLow = input.toLowerCase();
   const u = USERS.find(x =>
     (x.email && x.email.toLowerCase() === inputLow) ||
-    (x.nis && x.nis === input) ||
-    (x.nip && x.nip === input)
+    (x.nis && x.nis === input) || (x.nip && x.nip === input)
   );
 
-  if (!u) {
+  if (!u || !u.email) {
     info.className = 'alert alert-error';
-    info.textContent = 'Email / NIS / NIP tidak terdaftar di sistem.';
-    return;
-  }
-
-  if (!u.email) {
-    info.className = 'alert alert-error';
-    info.textContent = 'Akun ini tidak memiliki email terdaftar. Hubungi admin.';
-    return;
-  }
-
-  const rateKey = 'etam_reset_' + u.email;
-  const last = localStorage.getItem(rateKey);
-  if (last && (Date.now() - Number(last)) < 5 * 60 * 1000) {
-    const sisa = Math.ceil((5 * 60 * 1000 - (Date.now() - Number(last))) / 60000);
-    info.className = 'alert alert-warning';
-    info.textContent = `Tunggu ${sisa} menit lagi sebelum minta reset ulang.`;
+    info.textContent = 'Email tidak terdaftar.';
     return;
   }
 
@@ -354,17 +277,9 @@ async function handleForgot(ev) {
     info.textContent = result.msg;
     return;
   }
-
-  localStorage.setItem(rateKey, String(Date.now()));
   logAction('forgot_password', { email: u.email });
-
   info.className = 'alert alert-info';
-  info.innerHTML = `
-    <b>✅ Email reset berhasil dikirim!</b><br>
-    Cek inbox: <b>${esc(u.email)}</b><br>
-    Klik link reset di email untuk buat password baru.<br>
-    <small style="display:block;margin-top:6px">Cek folder <b>Spam/Promosi</b> jika email tidak muncul dalam 5 menit.</small>
-  `;
+  info.innerHTML = `<b>✅ Email reset terkirim!</b><br>Cek inbox: <b>${esc(u.email)}</b>`;
   document.getElementById('form-forgot').reset();
 }
 
@@ -399,11 +314,8 @@ function enterApp() {
   const saved = getSavedTab();
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   const isValid = saved && tabs.some(t => t.key === saved);
-  if (isValid) {
-    showTab(saved);
-  } else {
-    showTab(tabs[0] ? tabs[0].key : 'dashboard');
-  }
+  if (isValid) showTab(saved);
+  else showTab(tabs[0] ? tabs[0].key : 'dashboard');
 }
 
 async function loadFotosFromDB() {
@@ -417,25 +329,16 @@ async function loadFotosFromDB() {
   }
 }
 
-/* ================================================================
-   EVENT & INIT
-   ================================================================ */
+/* ============ INIT ============ */
 document.addEventListener('click', function(e) {
   const roleTab = e.target.closest('#view-login .role-tab');
-  if (roleTab && roleTab.dataset.role) {
-    selectLoginRole(roleTab.dataset.role);
-    return;
-  }
+  if (roleTab && roleTab.dataset.role) { selectLoginRole(roleTab.dataset.role); return; }
 }, false);
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    initPasswordToggles();
-    initFirebase();
-  });
+  document.addEventListener('DOMContentLoaded', () => { initPasswordToggles(); initFirebase(); });
 } else {
-  initPasswordToggles();
-  initFirebase();
+  initPasswordToggles(); initFirebase();
 }
 
 window.selectLoginRole = selectLoginRole;
