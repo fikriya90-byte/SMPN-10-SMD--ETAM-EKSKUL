@@ -1,27 +1,5 @@
-/* auth.js — Login, Register, Lupa Password, Toggle Password */
+/* auth.js — Login, Register, Lupa Password */
 
-/* ============ TOGGLE PASSWORD ============ */
-function togglePassword(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
-  const isHidden = input.type === 'password';
-  input.type = isHidden ? 'text' : 'password';
-  // Update icon di button
-  if (btn) {
-    btn.innerHTML = icon(isHidden ? 'eyeOff' : 'eye', 18);
-    btn.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
-  }
-}
-
-/* Set default icon untuk semua tombol password-toggle saat load */
-function initPasswordToggles() {
-  document.querySelectorAll('.password-toggle').forEach(btn => {
-    btn.innerHTML = icon('eye', 18);
-    btn.setAttribute('aria-label', 'Tampilkan password');
-  });
-}
-
-/* ============ ROLE SELECTOR ============ */
 function selectLoginRole(role) {
   if (!role) return;
   loginRole = role;
@@ -48,7 +26,6 @@ function selectRegRole(role) {
   }
 }
 
-/* ============ NAVIGASI LOGIN ============ */
 function openRegister() {
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('view-register').classList.remove('hidden');
@@ -58,8 +35,7 @@ function closeRegister() {
   document.getElementById('view-register').classList.add('hidden');
   document.getElementById('view-login').classList.remove('hidden');
   const re = document.getElementById('reg-error'), ri = document.getElementById('reg-info');
-  if (re) re.classList.add('hidden');
-  if (ri) ri.classList.add('hidden');
+  if (re) re.classList.add('hidden'); if (ri) ri.classList.add('hidden');
 }
 function openForgot() {
   document.getElementById('view-login').classList.add('hidden');
@@ -69,11 +45,9 @@ function openForgot() {
 function closeForgot() {
   document.getElementById('view-forgot').classList.add('hidden');
   document.getElementById('view-login').classList.remove('hidden');
-  const fi = document.getElementById('forgot-info');
-  if (fi) fi.classList.add('hidden');
+  const fi = document.getElementById('forgot-info'); if (fi) fi.classList.add('hidden');
 }
 
-/* ============ LOGIN ============ */
 async function handleLogin(ev) {
   ev.preventDefault();
   const input = document.getElementById('login-email').value.trim();
@@ -87,13 +61,10 @@ async function handleLogin(ev) {
   const legacy = legacyHash(pwd);
 
   const u = USERS.find(x =>
-    (x.email && x.email.toLowerCase() === inputLow) ||
-    (x.nis && x.nis === input) ||
-    (x.nisn && x.nisn === input)
+    (x.email && x.email.toLowerCase() === inputLow) || (x.nis && x.nis === input) || (x.nisn && x.nisn === input)
   );
   if (!u) return fail('Email/NIS tidak terdaftar');
-  if (u.password_hash !== hash && u.password_hash !== legacy && u.password !== legacy)
-    return fail('Password salah');
+  if (u.password_hash !== hash && u.password_hash !== legacy && u.password !== legacy) return fail('Password salah');
   if (!u.active) return fail('Akun belum diverifikasi / dinonaktifkan');
 
   const roleMap = { murid: ['murid', 'pengurus'], guru: ['guru', 'pelatih'], admin: ['admin'] };
@@ -129,7 +100,6 @@ async function handleLogin(ev) {
   enterApp();
 }
 
-/* ============ REGISTER ============ */
 async function handleRegister(ev) {
   ev.preventDefault();
   const name = document.getElementById('reg-name').value.trim();
@@ -138,8 +108,7 @@ async function handleRegister(ev) {
   const pwd = document.getElementById('reg-password').value;
   const err = document.getElementById('reg-error');
   const info = document.getElementById('reg-info');
-  err.classList.add('hidden');
-  info.classList.add('hidden');
+  err.classList.add('hidden'); info.classList.add('hidden');
   const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
 
   if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar');
@@ -152,10 +121,8 @@ async function handleRegister(ev) {
     if (USERS.some(u => u.nis && u.nis === nis)) return fail('NIS sudah terdaftar');
     if (!kelas) return fail('Pilih kelas');
     USERS.push({
-      id_user: uid('u'), nama_lengkap: name, email, nis, nisn,
-      password_hash: hash, no_wa: wa, role_sistem: 'murid', kelas,
-      foto_profil_url: '', active: true, last_login: '',
-      created_at: new Date().toISOString()
+      id_user: uid('u'), nama_lengkap: name, email, nis, nisn, password_hash: hash, no_wa: wa,
+      role_sistem: 'murid', kelas, foto_profil_url: '', active: true, last_login: '', created_at: new Date().toISOString()
     });
     persist();
     logAction('register_murid', { email, nis });
@@ -166,15 +133,10 @@ async function handleRegister(ev) {
     if (!idEks) return fail('Pilih ekskul yang dibina');
     const newId = uid('u');
     USERS.push({
-      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '',
-      password_hash: hash, no_wa: wa, role_sistem: tipe,
-      kelas: '', foto_profil_url: '', active: false, last_login: '',
-      created_at: new Date().toISOString()
+      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '', password_hash: hash, no_wa: wa,
+      role_sistem: tipe, kelas: '', foto_profil_url: '', active: false, last_login: '', created_at: new Date().toISOString()
     });
-    PEMBINA.push({
-      id_pembina: uid('p'), id_user: newId, id_ekskul: idEks,
-      status_akun: 'pending', created_at: new Date().toISOString()
-    });
+    PEMBINA.push({ id_pembina: uid('p'), id_user: newId, id_ekskul: idEks, status_akun: 'pending', created_at: new Date().toISOString() });
     persist();
     logAction('register_guru', { email, tipe, idEks });
     const admin = USERS.find(u => u.role_sistem === 'admin');
@@ -187,38 +149,29 @@ async function handleRegister(ev) {
   setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 2500);
 }
 
-/* ============ LUPA PASSWORD ============ */
 function handleForgot(ev) {
   ev.preventDefault();
   const input = document.getElementById('forgot-input').value.trim();
   const info = document.getElementById('forgot-info');
   if (!input) return;
-  LUPA_PASSWORD.push({
-    id_permintaan: uid('lp'), email_atau_nis: input,
-    status: 'pending', created_at: new Date().toISOString(), diselesaikan_oleh: ''
-  });
+  LUPA_PASSWORD.push({ id_permintaan: uid('lp'), email_atau_nis: input, status: 'pending', created_at: new Date().toISOString(), diselesaikan_oleh: '' });
   persist();
   info.textContent = 'Permintaan terkirim. Admin akan mereset password Anda via WhatsApp.';
   info.classList.remove('hidden');
   document.getElementById('form-forgot').reset();
 }
 
-/* ============ LOGOUT ============ */
 function logout() {
   if (!confirm('Keluar dari akun ini?')) return;
   if (typeof stopQRScan === 'function') { try { stopQRScan(); } catch(e) {} }
   logAction('logout', {});
   localStorage.removeItem('etam_session');
-  CURRENT_USER = null;
-  CURRENT_EKSKUL_CTX = null;
+  CURRENT_USER = null; CURRENT_EKSKUL_CTX = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').classList.add('hidden');
-  closeRegister();
-  closeForgot();
-  selectLoginRole('murid');
+  closeRegister(); closeForgot(); selectLoginRole('murid');
 }
 
-/* ============ ENTER APP ============ */
 function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
@@ -230,30 +183,19 @@ function enterApp() {
 async function loadFotosFromDB() {
   for (const f of LAPORAN_FOTO) {
     if (!f.file_url || f.file_url.includes('PLACEHOLDER')) {
-      try {
-        const data = await FotoDB.get(f.id_foto);
-        if (data) f.file_url = data;
-      } catch(e) {}
+      try { const data = await FotoDB.get(f.id_foto); if (data) f.file_url = data; } catch(e) {}
     }
   }
 }
 
-/* ============ EVENT DELEGATION ============ */
 document.addEventListener('click', function(e) {
   const roleTab = e.target.closest('#view-login .role-tab');
   if (roleTab && roleTab.dataset.role) { selectLoginRole(roleTab.dataset.role); return; }
 }, false);
 
-/* ============ INIT PASSWORD TOGGLES ============ */
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPasswordToggles);
-} else {
-  initPasswordToggles();
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initPasswordToggles);
+else initPasswordToggles();
 
-/* ============ EXPORT ============ */
-window.togglePassword = togglePassword;
-window.initPasswordToggles = initPasswordToggles;
 window.selectLoginRole = selectLoginRole;
 window.selectRegRole = selectRegRole;
 window.openRegister = openRegister;
