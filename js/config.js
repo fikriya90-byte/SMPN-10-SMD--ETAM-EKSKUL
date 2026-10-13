@@ -1,101 +1,130 @@
 /* =====================================================================
-   config.js — State Global + Konstanta
+   firebase-config.js — Konfigurasi Firebase (Project: ekskul-etam)
    ===================================================================== */
 
-const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-
-const JABATAN_LABEL = {
-  anggota: 'Anggota',
-  ketua: 'Ketua',
-  wakil_ketua: 'Wakil Ketua',
-  sekretaris: 'Sekretaris',
-  bendahara: 'Bendahara',
-  dokumentasi: 'Dokumentasi',
-  pembina: 'Pembina / Pelatih'
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDWAkF7Zkh3WsLqgXWxz_mM3P0tsmw_eog",
+  authDomain: "ekskul-etam.firebaseapp.com",
+  projectId: "ekskul-etam",
+  storageBucket: "ekskul-etam.firebasestorage.app",
+  messagingSenderId: "990117327948",
+  appId: "1:990117327948:web:f79f0777f1d0bf164a30e9"
 };
 
-const JENIS_SESI_LABEL = {
-  rutin: 'Latihan Rutin',
-  tambahan: 'Latihan Tambahan',
-  lomba: 'Persiapan Lomba',
-  pertemuan: 'Pertemuan Khusus',
-  lainnya: 'Kegiatan Lain'
-};
+/* ⚠️ ISI UID ADMIN DI SINI */
+/* Cara: Firebase Console → Authentication → Users → copy kolom UID di baris admin */
+const ADMIN_FIREBASE_UID = "ISI_UID_ADMIN_DI_SINI";
 
-const JENIS_SESI_COLOR = {
-  rutin: '#3B82F6',
-  tambahan: '#8B5CF6',
-  lomba: '#EC4899',
-  pertemuan: '#10B981',
-  lainnya: '#F59E0B'
-};
+/* ============ INISIALISASI ============ */
+let firebaseApp = null;
+let firebaseAuth = null;
 
-const JENIS_SESI_ICON = {
-  rutin: 'kalender',
-  tambahan: 'plus',
-  lomba: 'star',
-  pertemuan: 'users',
-  lainnya: 'info'
-};
+function initFirebase() {
+  if (firebaseApp) return firebaseApp;
+  try {
+    if (typeof firebase === 'undefined') {
+      console.error('[Firebase] SDK belum dimuat. Cek index.html.');
+      return null;
+    }
+    firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseAuth = firebase.auth();
+    console.log('[Firebase] Init OK:', FIREBASE_CONFIG.projectId);
+    return firebaseApp;
+  } catch (e) {
+    console.error('[Firebase] Gagal init:', e);
+    return null;
+  }
+}
 
-/* ============ STATE GLOBAL ============ */
-let USERS = [];
-let EKSKUL = [];
-let PEMBINA = [];
-let ANGGOTA = [];
-let JURNAL = [];
-let PRESENSI = [];
-let KAS_SETTING = {};
-let KAS_BAYAR = [];
-let APP_SETTINGS = {};
-let STRUKTUR_EKSKUL = {};
-let LAPORAN_FOTO = [];
-let KONTEN = [];
-let PENGUMUMAN = [];
-let NOTIFIKASI = [];
-let LOGS = [];
-let LUPA_PASSWORD = [];
-let STRUKTUR_ARSIP = {};
-let ARSIP_SISWA = [];
-let TAHUN_AJARAN_AKTIF = '2026/2027';
-let CURRENT_USER = null;
-let CURRENT_EKSKUL_CTX = null;
-let QR_SCANNER = null;
-let loginRole = 'murid';
-let regRole = 'murid';
+/* ============ WRAPPER FUNCTIONS ============ */
 
-/* ============ ADMIN DEFAULT ============ */
-const ADMIN_DEFAULT = {
-  id_user: 'u_admin',
-  nama_lengkap: 'Administrator ETAM',
-  email: 'admin@smp10smd.com',
-  nis: '',
-  nisn: '',
-  nip: '',
-  no_wa: '',
-  role_sistem: 'admin',
-  kelas: '',
-  foto_profil_url: '',
-  active: true
-};
+async function fbLogin(email, password) {
+  if (!firebaseAuth) initFirebase();
+  if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
+  try {
+    const cred = await firebaseAuth.signInWithEmailAndPassword(email, password);
+    return { ok: true, user: cred.user };
+  } catch (e) {
+    return { ok: false, code: e.code, msg: firebaseErrorMsg(e.code) };
+  }
+}
 
-const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
+async function fbRegister(email, password) {
+  if (!firebaseAuth) initFirebase();
+  if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
+  try {
+    const cred = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+    return { ok: true, user: cred.user };
+  } catch (e) {
+    return { ok: false, code: e.code, msg: firebaseErrorMsg(e.code) };
+  }
+}
 
-/* ============ DEFAULT SETTINGS ============ */
-const DEFAULT_SETTINGS = {
-  school_name: 'UPT SMP Negeri 10 Samarinda',
-  kepala_upt: 'Tuti Susandra Dewi, S.Pd., M.Pd',
-  kepala_nip: '',
-  kepala_wa: '',
-  koordinator_ekskul: 'Muhammad Ibnu Syamwardana, S.Pd., M.Pd',
-  koordinator_nip: '',
-  koordinator_wa: '',
-  koordinator_foto: '',
-  dinas: 'DINAS PENDIDIKAN DAN KEBUDAYAAN',
-  kota: 'PEMERINTAH KOTA SAMARINDA',
-  alamat_sekolah: 'Jl. Untung Suropati No.01, Karang Asam Ulu, Sungai Kuning 75126'
-};
+async function fbLogout() {
+  if (!firebaseAuth) return;
+  try { await firebaseAuth.signOut(); } catch (e) {}
+}
 
-/* ============ LOGO ============ */
-const LOGO_SMP = 'https://iili.io/nBiviCX.png';
-const LOGO_ETAM = 'https://iili.io/nVPEvv2.md.png';
+async function fbSendReset(email) {
+  if (!firebaseAuth) initFirebase();
+  if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
+  try {
+    await firebaseAuth.sendPasswordResetEmail(email);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, code: e.code, msg: firebaseErrorMsg(e.code) };
+  }
+}
+
+async function fbUpdatePassword(newPassword) {
+  if (!firebaseAuth) initFirebase();
+  const user = firebaseAuth.currentUser;
+  if (!user) return { ok: false, msg: 'Tidak ada user login' };
+  try {
+    await user.updatePassword(newPassword);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, code: e.code, msg: firebaseErrorMsg(e.code) };
+  }
+}
+
+async function fbGetCurrentUser() {
+  if (!firebaseAuth) initFirebase();
+  if (!firebaseAuth) return null;
+  return new Promise((resolve) => {
+    const unsub = firebaseAuth.onAuthStateChanged(u => {
+      unsub();
+      resolve(u);
+    });
+  });
+}
+
+function firebaseErrorMsg(code) {
+  const messages = {
+    'auth/email-already-in-use': 'Email sudah terdaftar',
+    'auth/invalid-email': 'Format email tidak valid',
+    'auth/weak-password': 'Password minimal 6 karakter',
+    'auth/user-not-found': 'Email tidak terdaftar di Firebase. Hubungi admin.',
+    'auth/wrong-password': 'Password salah',
+    'auth/invalid-credential': 'Email atau password salah',
+    'auth/invalid-login-credentials': 'Email atau password salah',
+    'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
+    'auth/network-request-failed': 'Koneksi internet bermasalah',
+    'auth/user-disabled': 'Akun dinonaktifkan',
+    'auth/operation-not-allowed': 'Email/Password belum diaktifkan di Firebase Console',
+    'auth/requires-recent-login': 'Harus login ulang untuk mengganti password',
+    'auth/unauthorized-domain': 'Domain belum terdaftar di Firebase Console'
+  };
+  return messages[code] || 'Terjadi kesalahan: ' + code;
+}
+
+/* ============ EXPORT ============ */
+window.initFirebase = initFirebase;
+window.fbLogin = fbLogin;
+window.fbRegister = fbRegister;
+window.fbLogout = fbLogout;
+window.fbSendReset = fbSendReset;
+window.fbUpdatePassword = fbUpdatePassword;
+window.fbGetCurrentUser = fbGetCurrentUser;
+window.firebaseErrorMsg = firebaseErrorMsg;
+window.ADMIN_FIREBASE_UID = ADMIN_FIREBASE_UID;
