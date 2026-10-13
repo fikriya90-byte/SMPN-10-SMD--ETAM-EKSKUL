@@ -1,4 +1,4 @@
-/* storage.js — DB Layer + Helper Struktur & Arsip */
+/* storage.js — DB Layer + Helper + Notifikasi dengan Target Tab */
 
 const DB = {
   get(k, d) { try { const s = localStorage.getItem('etam_' + k); return s ? JSON.parse(s) : (d ?? null); } catch (e) { return d ?? null; } },
@@ -43,19 +43,55 @@ function logAction(aksi, detail = {}) {
   DB.set('logs', LOGS);
 }
 
-function kirimNotif(idUser, judul, isi, tipe = 'info') {
+/* ============ NOTIFIKASI DENGAN TARGET ============ */
+
+/**
+ * Kirim notifikasi
+ * @param {string} idUser - Penerima
+ * @param {string} judul
+ * @param {string} isi
+ * @param {string} tipe - info|success|warning|error
+ * @param {object} opts - { tab: 'sesi'|'izin'|..., ekskul: 'idEkskul', data: {} }
+ */
+function kirimNotif(idUser, judul, isi, tipe = 'info', opts = {}) {
   if (!idUser) return;
-  NOTIFIKASI.push({ id_notif: uid('nt'), id_user: idUser, judul, isi, tipe, dibaca: false, created_at: new Date().toISOString() });
+  NOTIFIKASI.push({
+    id_notif: uid('nt'),
+    id_user: idUser,
+    judul, isi, tipe,
+    target_tab: opts.tab || '',
+    target_ekskul: opts.ekskul || '',
+    target_data: opts.data || {},
+    dibaca: false,
+    created_at: new Date().toISOString()
+  });
   if (NOTIFIKASI.length > 500) NOTIFIKASI = NOTIFIKASI.slice(-500);
   DB.set('notifikasi', NOTIFIKASI);
   updateNotifBadge();
 }
-function kirimNotifEkskul(idEkskul, judul, isi, tipe = 'info', kecualiUserId = null) {
-  anggotaAktifOf(idEkskul).forEach(a => { if (a.id_user !== kecualiUserId) kirimNotif(a.id_user, judul, isi, tipe); });
+
+function kirimNotifEkskul(idEkskul, judul, isi, tipe = 'info', kecualiUserId = null, opts = {}) {
+  const o = Object.assign({}, opts, { ekskul: idEkskul });
+  anggotaAktifOf(idEkskul).forEach(a => {
+    if (a.id_user !== kecualiUserId) kirimNotif(a.id_user, judul, isi, tipe, o);
+  });
 }
-function kirimNotifSemua(judul, isi, tipe = 'info') { USERS.forEach(u => { if (u.active) kirimNotif(u.id_user, judul, isi, tipe); }); }
-function notifSaya() { if (!CURRENT_USER) return []; return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user).sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')); }
-function countNotifBelumDibaca() { if (!CURRENT_USER) return 0; return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user && !n.dibaca).length; }
+
+function kirimNotifSemua(judul, isi, tipe = 'info', opts = {}) {
+  USERS.forEach(u => { if (u.active) kirimNotif(u.id_user, judul, isi, tipe, opts); });
+}
+
+function notifSaya() {
+  if (!CURRENT_USER) return [];
+  return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user)
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+}
+
+function countNotifBelumDibaca() {
+  if (!CURRENT_USER) return 0;
+  return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user && !n.dibaca).length;
+}
+
 function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
@@ -144,9 +180,7 @@ function hapusPermanenSiswa(idUser) {
   return true;
 }
 
-/* ============ KOORDINATOR & PEMBINA HELPER ============ */
-
-/** Ambil info koordinator dari APP_SETTINGS */
+/* ============ KOORDINATOR HELPER ============ */
 function getKoordinatorInfo() {
   return {
     nama: APP_SETTINGS.koordinator_ekskul || '',
@@ -155,34 +189,13 @@ function getKoordinatorInfo() {
     foto: APP_SETTINGS.koordinator_foto || ''
   };
 }
-
-/** Cari user admin berdasarkan nama koordinator (untuk link foto/WA) */
-function getKoordinatorUser() {
-  const info = getKoordinatorInfo();
-  if (!info.nama) return null;
-  const admin = USERS.find(u => u.role_sistem === 'admin');
-  return admin || null;
-}
-
-/** Ambil pembina ekskul berdasarkan role user (guru vs pelatih) */
 function getPembinaByTipe(idEkskul, tipe) {
-  // tipe: 'guru' atau 'pelatih'
   const list = PEMBINA.filter(p => p.id_ekskul === idEkskul && p.status_akun === 'aktif');
   return list.map(p => {
     const u = userById(p.id_user);
     if (!u) return null;
-    return { user: u, tipe: u.role_sistem, pembinaRec: p };
+    return { user: u, tipe: u.role_sistem };
   }).filter(x => x && x.tipe === tipe).map(x => x.user);
-}
-
-/** Ambil semua pembina (guru + pelatih) */
-function getSemuaPembina(idEkskul) {
-  const list = PEMBINA.filter(p => p.id_ekskul === idEkskul && p.status_akun === 'aktif');
-  return list.map(p => {
-    const u = userById(p.id_user);
-    if (!u) return null;
-    return u;
-  }).filter(Boolean);
 }
 
 /* ============ SEED ============ */
@@ -230,6 +243,4 @@ window.arsipkanSiswa = arsipkanSiswa;
 window.restoreSiswa = restoreSiswa;
 window.hapusPermanenSiswa = hapusPermanenSiswa;
 window.getKoordinatorInfo = getKoordinatorInfo;
-window.getKoordinatorUser = getKoordinatorUser;
 window.getPembinaByTipe = getPembinaByTipe;
-window.getSemuaPembina = getSemuaPembina;
