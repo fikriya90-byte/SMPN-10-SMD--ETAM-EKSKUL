@@ -1,4 +1,4 @@
-/* nav.js — Sidebar Navigation + Header Context Dinamis */
+/* nav.js — Sidebar + Header + State Persistence + Ekskul Switcher */
 
 const NAV = {
   admin: [
@@ -95,6 +95,88 @@ const NAV = {
 
 const ROUTES = {};
 
+/* ============ STATE PERSISTENCE ============ */
+
+function saveCurrentTab(key) {
+  try { localStorage.setItem('etam_current_tab', key || ''); } catch(e) {}
+}
+function getSavedTab() {
+  try { return localStorage.getItem('etam_current_tab') || ''; } catch(e) { return ''; }
+}
+function clearSavedTab() {
+  try { localStorage.removeItem('etam_current_tab'); } catch(e) {}
+}
+
+function saveEkskulCtx(idEks) {
+  try { localStorage.setItem('etam_ekskul_ctx', idEks || ''); } catch(e) {}
+}
+function getSavedEkskulCtx() {
+  try { return localStorage.getItem('etam_ekskul_ctx') || ''; } catch(e) { return ''; }
+}
+function clearEkskulCtx() {
+  try { localStorage.removeItem('etam_ekskul_ctx'); } catch(e) {}
+}
+
+/* ============ EKSKUL ACCESS ============ */
+
+/** Daftar ekskul yang bisa diakses user (untuk switcher) */
+function getAccessibleEkskulIds() {
+  if (!CURRENT_USER) return [];
+  const r = CURRENT_USER.role_sistem;
+  if (r === 'admin') return EKSKUL.map(e => e.id_ekskul);
+  if (r === 'guru' || r === 'pelatih') return userEkskulIds(CURRENT_USER.id_user);
+  if (r === 'pengurus' || r === 'murid') {
+    return ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user && a.status_anggota === 'aktif')
+      .map(a => a.id_ekskul);
+  }
+  return [];
+}
+
+/** Info role user di ekskul tertentu */
+function getRoleInEkskul(idEks) {
+  if (!CURRENT_USER || !idEks) return null;
+  const r = CURRENT_USER.role_sistem;
+  if (r === 'admin') return { role: 'Admin', label: 'Admin' };
+  if (r === 'guru' || r === 'pelatih') {
+    const p = PEMBINA.find(x => x.id_user === CURRENT_USER.id_user && x.id_ekskul === idEks && x.status_akun === 'aktif');
+    if (p) return { role: r, label: r === 'guru' ? 'Pembina' : 'Pelatih' };
+  }
+  if (r === 'pengurus' || r === 'murid') {
+    const a = ANGGOTA.find(x => x.id_user === CURRENT_USER.id_user && x.id_ekskul === idEks && x.status_anggota === 'aktif');
+    if (a) return { role: a.jabatan === 'anggota' ? 'murid' : 'pengurus', label: JABATAN_LABEL[a.jabatan] || 'Anggota' };
+  }
+  return null;
+}
+
+/** Validasi CURRENT_EKSKUL_CTX */
+function ensureEkskulCtx() {
+  const accessible = getAccessibleEkskulIds();
+  if (!accessible.length) { CURRENT_EKSKUL_CTX = null; return null; }
+  if (CURRENT_EKSKUL_CTX && accessible.includes(CURRENT_EKSKUL_CTX)) return CURRENT_EKSKUL_CTX;
+  const saved = getSavedEkskulCtx();
+  if (saved && accessible.includes(saved)) { CURRENT_EKSKUL_CTX = saved; return CURRENT_EKSKUL_CTX; }
+  CURRENT_EKSKUL_CTX = accessible[0];
+  saveEkskulCtx(CURRENT_EKSKUL_CTX);
+  return CURRENT_EKSKUL_CTX;
+}
+
+/** Ganti ekskul context */
+function switchEkskulCtx(idEks) {
+  if (!idEks) return;
+  const accessible = getAccessibleEkskulIds();
+  if (!accessible.includes(idEks)) return showToast('Anda tidak punya akses ke ekskul ini', 'error');
+  CURRENT_EKSKUL_CTX = idEks;
+  saveEkskulCtx(idEks);
+  // Update tampilan
+  renderNav();
+  renderHeaderContext();
+  const cur = getSavedTab() || 'dashboard';
+  showTab(cur);
+  showToast('Ekskul aktif: ' + (ekskulById(idEks)?.nama_ekskul || ''));
+}
+
+/* ============ RENDER SIDEBAR ============ */
+
 function renderNav() {
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   const navEl = document.getElementById('nav-tabs');
@@ -107,7 +189,10 @@ function renderNav() {
     groups[g].push(t);
   });
 
-  const roleLabel = { admin: 'Admin', guru: 'Guru', pelatih: 'Pelatih', pengurus: 'Pengurus', murid: 'Siswa' }[CURRENT_USER.role_sistem] || 'User';
+  const roleLabel = {
+    admin: 'Admin', guru: 'Guru', pelatih: 'Pelatih',
+    pengurus: 'Pengurus', murid: 'Siswa'
+  }[CURRENT_USER.role_sistem] || 'User';
 
   navEl.innerHTML = `
     <div class="sidebar-header">
@@ -132,10 +217,10 @@ function renderNav() {
           <p class="sidebar-user-role">${roleLabel}${CURRENT_USER._jabatan ? ' - ' + (JABATAN_LABEL[CURRENT_USER._jabatan] || '') : ''}</p>
         </div>
       </div>
-      <div class="sidebar-user-year">
-        ${icon('kalender', 11)} ${esc(TAHUN_AJARAN_AKTIF)}
-      </div>
+      <div class="sidebar-user-year">${icon('kalender', 11)} ${esc(TAHUN_AJARAN_AKTIF)}</div>
     </div>
+
+    ${renderEkskulSwitcherSidebar()}
 
     <nav class="sidebar-nav">
       ${Object.keys(groups).map(g => `
@@ -160,6 +245,48 @@ function renderNav() {
   `;
 }
 
+function renderEkskulSwitcherSidebar() {
+  const accessible = getAccessibleEkskulIds();
+  if (accessible.length <= 1) return ''; // Kalau cuma 1 ekskul, tidak perlu switcher
+
+  const eks = accessible.map(id => ekskulById(id)).filter(Boolean);
+  return `
+    <div class="sidebar-ekskul-switcher">
+      <p class="sidebar-ekskul-label">${icon('ekskul', 11)} Ekskul Aktif</p>
+      <div class="sidebar-ekskul-dropdown">
+        <button onclick="toggleEkskulDropdown(event)" class="sidebar-ekskul-btn">
+          <span>${esc(ekskulById(CURRENT_EKSKUL_CTX)?.nama_ekskul || 'Pilih')}</span>
+          <span class="sidebar-ekskul-caret">${icon('chevronRight', 12)}</span>
+        </button>
+        <div id="ekskul-dropdown-menu" class="sidebar-ekskul-menu hidden">
+          ${eks.map(e => {
+            const info = getRoleInEkskul(e.id_ekskul);
+            return `<button onclick="switchEkskulCtx('${e.id_ekskul}')" class="sidebar-ekskul-item ${e.id_ekskul === CURRENT_EKSKUL_CTX ? 'active' : ''}">
+              <span class="sidebar-ekskul-item-name">${esc(e.nama_ekskul)}</span>
+              ${info ? `<span class="sidebar-ekskul-item-role">${esc(info.label)}</span>` : ''}
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.toggleEkskulDropdown = (ev) => {
+  if (ev) ev.stopPropagation();
+  const m = document.getElementById('ekskul-dropdown-menu');
+  if (m) m.classList.toggle('hidden');
+};
+
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('.sidebar-ekskul-dropdown')) {
+    const m = document.getElementById('ekskul-dropdown-menu');
+    if (m) m.classList.add('hidden');
+  }
+});
+
+/* ============ HEADER CONTEXT ============ */
+
 function renderHeaderContext() {
   const ctxEl = document.getElementById('context-block');
   if (!ctxEl) return;
@@ -169,26 +296,63 @@ function renderHeaderContext() {
     ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">Admin</span><span class="context-chip-value">${esc(TAHUN_AJARAN_AKTIF)}</span></div>`;
     return;
   }
-  if (r === 'guru' || r === 'pelatih') {
-    const ids = userEkskulIds(CURRENT_USER.id_user);
-    const roleTxt = r === 'guru' ? 'Guru Pembina' : 'Pelatih';
-    if (!ids.length) ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${roleTxt}</span><span class="context-chip-value">Belum ditugaskan</span></div>`;
-    else if (ids.length === 1) { const e = ekskulById(ids[0]); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${roleTxt}</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`; }
-    else { const names = ids.map(id => ekskulById(id)?.nama_ekskul).filter(Boolean).join(', '); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${ids.length} Ekskul</span><span class="context-chip-value">${esc(names)}</span></div>`; }
+
+  const accessible = getAccessibleEkskulIds();
+  if (!accessible.length) {
+    const label = r === 'guru' ? 'Guru' : r === 'pelatih' ? 'Pelatih' : 'Siswa';
+    ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${label}</span><span class="context-chip-value">Belum ada ekskul</span></div>`;
     return;
   }
-  if (r === 'pengurus') {
-    const e = ekskulById(CURRENT_EKSKUL_CTX);
-    ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${esc(JABATAN_LABEL[CURRENT_USER._jabatan] || 'Pengurus')}</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`;
+
+  if (accessible.length === 1) {
+    const e = ekskulById(accessible[0]);
+    const info = getRoleInEkskul(accessible[0]);
+    ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${esc(info?.label || 'Ekskul')}</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`;
     return;
   }
-  if (r === 'murid') {
-    const aktif = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user && a.status_anggota === 'aktif');
-    if (!aktif.length) ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">Siswa</span><span class="context-chip-value">Belum ikut ekskul</span></div>`;
-    else if (aktif.length === 1) { const e = ekskulById(aktif[0].id_ekskul); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">Siswa</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`; }
-    else { const names = aktif.map(a => ekskulById(a.id_ekskul)?.nama_ekskul).filter(Boolean).join(', '); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${aktif.length} Ekskul</span><span class="context-chip-value">${esc(names)}</span></div>`; }
-  }
+
+  // Kalau >1 ekskul, tampilkan dropdown
+  const curEks = ekskulById(CURRENT_EKSKUL_CTX);
+  const curInfo = getRoleInEkskul(CURRENT_EKSKUL_CTX);
+  const eks = accessible.map(id => ekskulById(id)).filter(Boolean);
+  ctxEl.innerHTML = `
+    <div class="context-dropdown-wrap">
+      <button onclick="toggleContextDropdown(event)" class="context-chip context-chip-btn">
+        <span class="context-chip-label">${esc(curInfo?.label || 'Ekskul')}</span>
+        <span class="context-chip-value">${esc(curEks?.nama_ekskul || 'Pilih')}</span>
+        <span style="margin-left:4px;display:flex;align-items:center">${icon('chevronRight', 12)}</span>
+      </button>
+      <div id="context-dropdown-menu" class="context-dropdown-menu hidden">
+        <p class="context-dropdown-title">Pilih Ekskul</p>
+        ${eks.map(e => {
+          const info = getRoleInEkskul(e.id_ekskul);
+          return `<button onclick="switchEkskulCtx('${e.id_ekskul}');toggleContextDropdown(event);" class="context-dropdown-item ${e.id_ekskul === CURRENT_EKSKUL_CTX ? 'active' : ''}">
+            <div class="context-dropdown-item-info">
+              ${e.logo_url ? `<img src="${e.logo_url}" style="width:24px;height:24px;border-radius:6px;object-fit:cover">` : `<div class="context-dropdown-item-logo">${esc(e.nama_ekskul.slice(0,2).toUpperCase())}</div>`}
+              <span class="context-dropdown-item-name">${esc(e.nama_ekskul)}</span>
+            </div>
+            ${info ? `<span class="context-dropdown-item-role">${esc(info.label)}</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
 }
+
+window.toggleContextDropdown = (ev) => {
+  if (ev) ev.stopPropagation();
+  const m = document.getElementById('context-dropdown-menu');
+  if (m) m.classList.toggle('hidden');
+};
+
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('.context-dropdown-wrap')) {
+    const m = document.getElementById('context-dropdown-menu');
+    if (m) m.classList.add('hidden');
+  }
+});
+
+/* ============ SHOW TAB ============ */
 
 function showTab(key) {
   if (!key || !ROUTES[key]) {
@@ -196,6 +360,10 @@ function showTab(key) {
     if (el) el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:var(--text-dim)">Halaman "${esc(key)}" belum tersedia.</div></div>`;
     return;
   }
+
+  // Pastikan ctx valid sebelum render
+  ensureEkskulCtx();
+
   document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.tab === key));
   const el = document.getElementById('main-content');
   el.innerHTML = '';
@@ -207,10 +375,14 @@ function showTab(key) {
     console.error(e);
     el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Error: ${esc(e.message)}</div></div>`;
   }
+
+  saveCurrentTab(key);
   renderHeaderContext();
   if (window.innerWidth < 1024) closeSidebarMobile();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+/* ============ SIDEBAR MOBILE ============ */
 
 function openSidebarMobile() {
   document.getElementById('sidebar').classList.add('open');
@@ -235,4 +407,12 @@ window.renderNav = renderNav;
 window.renderHeaderContext = renderHeaderContext;
 window.openSidebarMobile = openSidebarMobile;
 window.closeSidebarMobile = closeSidebarMobile;
-window.toggleSidebar = toggleSidebar; 
+window.toggleSidebar = toggleSidebar;
+window.switchEkskulCtx = switchEkskulCtx;
+window.getAccessibleEkskulIds = getAccessibleEkskulIds;
+window.getRoleInEkskul = getRoleInEkskul;
+window.ensureEkskulCtx = ensureEkskulCtx;
+window.saveEkskulCtx = saveEkskulCtx;
+window.getSavedTab = getSavedTab;
+window.clearSavedTab = clearSavedTab;
+window.clearEkskulCtx = clearEkskulCtx;
