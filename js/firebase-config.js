@@ -1,5 +1,5 @@
 /* =====================================================================
-   firebase-config.js — Konfigurasi Firebase + Admin Create User
+   firebase-config.js — Konfigurasi Firebase + Admin Create/Delete User
    ===================================================================== */
 
 const FIREBASE_CONFIG = {
@@ -12,6 +12,7 @@ const FIREBASE_CONFIG = {
 };
 
 const ADMIN_FIREBASE_UID = "z5NU9hsv8jaS5oGd95eZxNeZpcc2";
+const DELETE_VERIFY_CODE = "HAPUS-ETAM-2026";
 
 const ADMIN_DEFAULT = {
   id_user: 'admin_utama',
@@ -28,29 +29,19 @@ let firebaseApp = null;
 let firebaseAuth = null;
 let _persistenceReady = false;
 
-/* ================================================================
-   INIT FIREBASE
-   ================================================================ */
 async function initFirebase() {
   if (firebaseApp && _persistenceReady) return firebaseApp;
   try {
-    if (typeof firebase === 'undefined') {
-      console.error('[Firebase] SDK belum dimuat');
-      return null;
-    }
+    if (typeof firebase === 'undefined') { console.error('[Firebase] SDK belum dimuat'); return null; }
     if (!firebaseApp) firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
     if (!firebaseAuth) firebaseAuth = firebase.auth();
-
     if (!_persistenceReady) {
       try {
         await firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         _persistenceReady = true;
         console.log('[Firebase] Persistence LOCAL OK');
-      } catch(e) {
-        console.warn('[Firebase] Persistence gagal:', e);
-      }
+      } catch(e) {}
     }
-    console.log('[ETAM] Firebase terhubung:', FIREBASE_CONFIG.projectId);
     return firebaseApp;
   } catch (e) {
     console.error('[Firebase] Gagal init:', e);
@@ -58,9 +49,6 @@ async function initFirebase() {
   }
 }
 
-/* ================================================================
-   LOGIN
-   ================================================================ */
 async function fbLogin(email, password) {
   try {
     if (!firebaseAuth) await initFirebase();
@@ -73,9 +61,6 @@ async function fbLogin(email, password) {
   }
 }
 
-/* ================================================================
-   REGISTER (untuk siswa daftar mandiri)
-   ================================================================ */
 async function fbRegister(email, password) {
   try {
     if (!firebaseAuth) await initFirebase();
@@ -87,34 +72,22 @@ async function fbRegister(email, password) {
   }
 }
 
-/* ================================================================
-   ADMIN BUAT AKUN FIREBASE AUTH UNTUK USER LAIN
-   ----------------------------------------------------------------
-   Pakai secondary app supaya Admin tidak ter-logout.
-   Setelah user dibuat, secondary app langsung dihapus.
-   ================================================================ */
+/* =====================================================================
+   ADMIN CREATE USER — pakai secondary app
+   ===================================================================== */
 async function fbAdminCreateUser(email, password) {
-  if (typeof firebase === 'undefined') {
-    return { ok: false, msg: 'Firebase belum siap' };
-  }
+  if (typeof firebase === 'undefined') return { ok: false, msg: 'Firebase belum siap' };
   const appName = 'Secondary-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
   let secondaryApp = null;
   try {
     secondaryApp = firebase.initializeApp(FIREBASE_CONFIG, appName);
     const secondaryAuth = secondaryApp.auth();
-
-    // Set persistence ke NONE supaya tidak ganggu session admin
-    try {
-      await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
-    } catch(e) {}
-
+    try { await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE); } catch(e) {}
     const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
     console.log('[Firebase] Admin created user:', email, '· UID:', uid);
-
     try { await secondaryAuth.signOut(); } catch(e) {}
     try { await secondaryApp.delete(); } catch(e) {}
-
     return { ok: true, uid };
   } catch (e) {
     console.warn('[Firebase] fbAdminCreateUser gagal:', e.code, e.message);
@@ -123,16 +96,39 @@ async function fbAdminCreateUser(email, password) {
   }
 }
 
-/* ================================================================
-   LOGOUT
-   ================================================================ */
+/* =====================================================================
+   ADMIN DELETE USER — hapus dari Firebase Auth pakai secondary app
+   Login sebagai user target (pakai password tersimpan), lalu delete self
+   ===================================================================== */
+async function fbAdminDeleteUser(email, password) {
+  if (typeof firebase === 'undefined') return { ok: false, msg: 'Firebase belum siap' };
+  if (!email || !password) return { ok: false, msg: 'Email/password tidak tersedia' };
+  const appName = 'Delete-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  let secondaryApp = null;
+  try {
+    secondaryApp = firebase.initializeApp(FIREBASE_CONFIG, appName);
+    const secondaryAuth = secondaryApp.auth();
+    try { await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE); } catch(e) {}
+
+    const cred = await secondaryAuth.signInWithEmailAndPassword(email, password);
+    const uid = cred.user.uid;
+    await cred.user.delete();
+    console.log('[Firebase] User dihapus dari Auth:', email, '· UID:', uid);
+
+    try { await secondaryAuth.signOut(); } catch(e) {}
+    try { await secondaryApp.delete(); } catch(e) {}
+    return { ok: true, uid };
+  } catch (e) {
+    console.warn('[Firebase] fbAdminDeleteUser gagal:', e.code, e.message);
+    try { if (secondaryApp) await secondaryApp.delete(); } catch(err) {}
+    return { ok: false, code: e.code, msg: e.message || firebaseErrorMsg(e.code) };
+  }
+}
+
 async function fbLogout() {
   try { if (firebaseAuth) await firebaseAuth.signOut(); } catch(e) {}
 }
 
-/* ================================================================
-   LUPA PASSWORD / RESET EMAIL
-   ================================================================ */
 async function fbSendReset(email) {
   try {
     if (!firebaseAuth) await initFirebase();
@@ -144,9 +140,6 @@ async function fbSendReset(email) {
   }
 }
 
-/* ================================================================
-   UPDATE PASSWORD
-   ================================================================ */
 async function fbUpdatePassword(newPassword) {
   try {
     if (!firebaseAuth) await initFirebase();
@@ -159,16 +152,11 @@ async function fbUpdatePassword(newPassword) {
   }
 }
 
-/* ================================================================
-   GET CURRENT USER (robust)
-   ================================================================ */
 async function fbGetCurrentUser(timeoutMs = 10000) {
   try {
     if (!firebaseAuth) await initFirebase();
     if (!firebaseAuth) return null;
-
     if (firebaseAuth.currentUser) return firebaseAuth.currentUser;
-
     return new Promise((resolve) => {
       let resolved = false;
       const finish = (u) => {
@@ -186,9 +174,6 @@ async function fbGetCurrentUser(timeoutMs = 10000) {
   }
 }
 
-/* ================================================================
-   PESAN ERROR
-   ================================================================ */
 function firebaseErrorMsg(code) {
   const messages = {
     'auth/invalid-email': 'Format email tidak valid.',
@@ -205,22 +190,20 @@ function firebaseErrorMsg(code) {
     'auth/operation-not-allowed': 'Email/Password belum diaktifkan di Firebase Console.',
     'auth/unauthorized-domain': 'Domain belum terdaftar di Firebase Console.',
     'auth/invalid-api-key': 'Konfigurasi API Key salah.',
-    'auth/popup-blocked': 'Popup diblokir browser.',
-    'auth/admin-restricted-operation': 'Operasi ini dibatasi. Cek Firebase Console.'
+    'auth/popup-blocked': 'Popup diblokir browser.'
   };
   return messages[code] || 'Terjadi kesalahan: ' + code;
 }
 
-/* ================================================================
-   EXPORT KE WINDOW
-   ================================================================ */
 window.initFirebase = initFirebase;
 window.fbLogin = fbLogin;
 window.fbRegister = fbRegister;
 window.fbAdminCreateUser = fbAdminCreateUser;
+window.fbAdminDeleteUser = fbAdminDeleteUser;
 window.fbLogout = fbLogout;
 window.fbSendReset = fbSendReset;
 window.fbUpdatePassword = fbUpdatePassword;
 window.fbGetCurrentUser = fbGetCurrentUser;
 window.firebaseErrorMsg = firebaseErrorMsg;
 window.ADMIN_FIREBASE_UID = ADMIN_FIREBASE_UID;
+window.DELETE_VERIFY_CODE = DELETE_VERIFY_CODE;
