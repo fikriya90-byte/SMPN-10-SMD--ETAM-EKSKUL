@@ -3,7 +3,7 @@
 const NAV = {
   admin: [
     { key:'dashboard', label:'Dashboard', icon:'dashboard', group:'Utama' },
-    { key:'verifikasi', label:'Verifikasi', icon:'verifikasi', group:'Utama' },
+    { key:'verifikasiSiswa', label:'Verifikasi Siswa', icon:'verifikasi', group:'Utama' },
     { key:'pembina', label:'Pembina & Pelatih', icon:'users', group:'Manajemen' },
     { key:'ekskul', label:'Manajemen Ekskul', icon:'ekskul', group:'Manajemen' },
     { key:'struktur', label:'Struktur', icon:'struktur', group:'Manajemen' },
@@ -22,6 +22,7 @@ const NAV = {
   ],
   guru: [
     { key:'dashboard', label:'Dashboard', icon:'dashboard', group:'Utama' },
+    { key:'verifikasiSiswa', label:'Verifikasi Siswa', icon:'verifikasi', group:'Utama' },
     { key:'sesi', label:'Sesi', icon:'sesi', group:'Kegiatan' },
     { key:'jurnal', label:'Jurnal', icon:'jurnal', group:'Kegiatan' },
     { key:'izin', label:'Izin', icon:'izin', group:'Kegiatan' },
@@ -42,6 +43,7 @@ const NAV = {
   ],
   pelatih: [
     { key:'dashboard', label:'Dashboard', icon:'dashboard', group:'Utama' },
+    { key:'verifikasiSiswa', label:'Verifikasi Siswa', icon:'verifikasi', group:'Utama' },
     { key:'sesi', label:'Sesi', icon:'sesi', group:'Kegiatan' },
     { key:'jurnal', label:'Jurnal', icon:'jurnal', group:'Kegiatan' },
     { key:'izin', label:'Izin', icon:'izin', group:'Kegiatan' },
