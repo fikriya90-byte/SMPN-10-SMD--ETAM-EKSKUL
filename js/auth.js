@@ -1,5 +1,5 @@
 /* =====================================================================
-   auth.js — Login via Firebase Auth (robust)
+   auth.js — Login (Firebase Auth + Fallback Admin Lokal), Register, Lupa Password
    ===================================================================== */
 
 /* ============ ROLE SELECTOR ============ */
@@ -16,6 +16,7 @@ function selectLoginRole(role) {
   if (err) err.classList.add('hidden');
 }
 
+/* ============ OPEN REGISTER ============ */
 async function openRegister() {
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('view-register').classList.remove('hidden');
@@ -76,7 +77,7 @@ function closeForgot() {
 }
 
 /* ================================================================
-   LOGIN
+   LOGIN — Firebase Auth + Fallback Admin Lokal
    ================================================================ */
 async function handleLogin(ev) {
   ev.preventDefault();
@@ -96,22 +97,59 @@ async function handleLogin(ev) {
     (x.nip && x.nip === input)
   );
 
+  // Tentukan email untuk Firebase
   let loginEmail = '';
   if (userRec && userRec.email) loginEmail = userRec.email;
   else if (input.includes('@')) loginEmail = input;
   else return fail('Email/NIS/NIP tidak terdaftar');
 
   showToast('Memverifikasi...');
+  let firebaseUid = '';
+  let loginOk = false;
+  let fbErrMsg = '';
+
+  // ============ COBA FIREBASE AUTH DULU ============
   const result = await fbLogin(loginEmail, pwd);
-  if (!result.ok) return fail(result.msg);
+  if (result.ok) {
+    loginOk = true;
+    firebaseUid = result.user.uid;
+  } else {
+    fbErrMsg = result.msg || 'Login gagal';
+    // ============ FALLBACK: HASH LOKAL (untuk admin/guru yang belum ada di Firebase) ============
+    const hashInput = hashPwd(pwd);
+    const legacy = legacyHash ? legacyHash(pwd) : hashInput;
+    if (userRec && userRec.password_hash &&
+        (userRec.password_hash === hashInput || userRec.password_hash === legacy)) {
+      console.log('[Auth] Fallback login via hash lokal untuk:', userRec.role_sistem);
+      loginOk = true;
+      firebaseUid = userRec.firebase_uid || '';
+      // Coba daftarkan ke Firebase diam-diam (best effort)
+      if (typeof fbRegister === 'function') {
+        try {
+          const reg = await fbRegister(loginEmail, pwd);
+          if (reg.ok) {
+            firebaseUid = reg.user.uid;
+            userRec.firebase_uid = firebaseUid;
+            await fbLogout(); // logout session register, login resmi nanti
+            const relogin = await fbLogin(loginEmail, pwd);
+            if (relogin.ok) firebaseUid = relogin.user.uid;
+            persist();
+          }
+        } catch(e) { console.warn('[Auth] Auto-register gagal:', e); }
+      }
+    } else {
+      return fail(fbErrMsg);
+    }
+  }
 
-  const firebaseUid = result.user.uid;
+  if (!loginOk) return fail(fbErrMsg || 'Login gagal');
 
+  // Kalau user belum ada di data lokal, buat baru
   if (!userRec) {
     userRec = {
       id_user: 'u_' + firebaseUid,
-      nama_lengkap: result.user.email.split('@')[0],
-      email: result.user.email,
+      nama_lengkap: loginEmail.split('@')[0],
+      email: loginEmail,
       nis: '', nisn: '', nip: '',
       password_hash: '',
       no_wa: '',
@@ -125,22 +163,24 @@ async function handleLogin(ev) {
     };
     USERS.push(userRec);
     persist();
-  } else if (!userRec.firebase_uid || userRec.firebase_uid !== firebaseUid) {
+  } else if (firebaseUid && (!userRec.firebase_uid || userRec.firebase_uid !== firebaseUid)) {
     userRec.firebase_uid = firebaseUid;
     persist();
   }
 
+  // Cek role
   const roleMap = {
     murid: ['murid', 'pengurus'],
     guru: ['guru', 'pelatih'],
     admin: ['admin']
   };
   if (!roleMap[loginRole].includes(userRec.role_sistem)) {
-    await fbLogout();
+    try { await fbLogout(); } catch(e) {}
     const labels = { murid:'Siswa', guru:'Guru / Pelatih', admin:'Admin' };
     return fail('Akun ini bukan akun ' + labels[loginRole] + '. Pilih tab yang sesuai.');
   }
 
+  // Cek verifikasi siswa
   if (userRec.role_sistem === 'murid' || userRec.role_sistem === 'pengurus') {
     const anggotaAktif = ANGGOTA.filter(a =>
       a.id_user === userRec.id_user && a.status_anggota === 'aktif'
@@ -149,7 +189,7 @@ async function handleLogin(ev) {
       a.id_user === userRec.id_user && a.status_anggota === 'pending'
     );
     if (anggotaAktif.length === 0) {
-      await fbLogout();
+      try { await fbLogout(); } catch(e) {}
       if (anggotaPending.length > 0) {
         const eksNama = anggotaPending.map(p => ekskulById(p.id_ekskul)?.nama_ekskul).filter(Boolean).join(', ');
         return fail('Akun Anda masih menunggu verifikasi Pembina untuk ekskul: ' + eksNama + '.');
@@ -158,21 +198,23 @@ async function handleLogin(ev) {
     }
   }
 
+  // Cek verifikasi guru/pelatih
   if (userRec.role_sistem === 'guru' || userRec.role_sistem === 'pelatih') {
     const pembinaAktif = PEMBINA.filter(p =>
       p.id_user === userRec.id_user && p.status_akun === 'aktif'
     );
     if (pembinaAktif.length === 0) {
-      await fbLogout();
+      try { await fbLogout(); } catch(e) {}
       return fail('Akun Anda belum dipetakan ke ekskul. Hubungi Admin.');
     }
   }
 
   if (!userRec.active) {
-    await fbLogout();
+    try { await fbLogout(); } catch(e) {}
     return fail('Akun dinonaktifkan. Hubungi Admin.');
   }
 
+  // Set current user
   CURRENT_USER = Object.assign({}, userRec);
   CURRENT_USER.last_login = new Date().toISOString();
   CURRENT_USER._firebase_uid = firebaseUid;
@@ -183,6 +225,7 @@ async function handleLogin(ev) {
     persist();
   }
 
+  // Cek jabatan pengurus
   if (userRec.role_sistem === 'murid') {
     const a = ANGGOTA.find(x =>
       x.id_user === userRec.id_user &&
@@ -207,7 +250,7 @@ async function handleLogin(ev) {
 }
 
 /* ================================================================
-   REGISTER
+   REGISTER — HANYA SISWA
    ================================================================ */
 async function handleRegister(ev) {
   ev.preventDefault();
@@ -329,7 +372,7 @@ async function handleForgot(ev) {
 async function logout() {
   if (!confirm('Keluar dari akun ini?')) return;
   if (typeof stopQRScan === 'function') { try { stopQRScan(); } catch(e) {} }
-  await fbLogout();
+  try { await fbLogout(); } catch(e) {}
   logAction('logout', {});
   if (typeof clearSavedTab === 'function') clearSavedTab();
   if (typeof clearEkskulCtx === 'function') clearEkskulCtx();
@@ -343,7 +386,7 @@ async function logout() {
 }
 
 /* ================================================================
-   ENTER APP — dengan error handling
+   ENTER APP
    ================================================================ */
 function enterApp() {
   try {
@@ -358,9 +401,8 @@ function enterApp() {
     else showTab(tabs[0] ? tabs[0].key : 'dashboard');
   } catch (e) {
     console.error('[enterApp] error:', e);
-    // Fallback: tampilkan dashboard
     try { showTab('dashboard'); } catch(e2) {
-      document.getElementById('main-content').innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Error saat memuat aplikasi: ${esc(e.message)}</div></div>`;
+      document.getElementById('main-content').innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Error: ${esc(e.message)}</div></div>`;
     }
   }
 }
