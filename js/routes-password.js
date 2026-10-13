@@ -1,4 +1,4 @@
-/* routes-password.js — Ganti Password dengan Toggle */
+/* routes-password.js — Ganti Password */
 
 ROUTES.gantipwd = el => {
   el.innerHTML = `
@@ -6,22 +6,19 @@ ROUTES.gantipwd = el => {
       <div class="card-header"><h2 class="font-display text-base">${icon('lock', 18)} Ganti Password</h2></div>
       <div class="card-body space-y-3">
         <p class="text-sm" style="color:var(--text-muted)">Ganti password akun Anda. Minimal 6 karakter.</p>
-        <div>
-          <label class="field-label">Password Lama</label>
+        <div><label class="field-label">Password Lama</label>
           <div class="password-wrap">
             <input type="password" id="pwd-lama" class="field-input">
             <button type="button" class="password-toggle" onclick="togglePassword('pwd-lama', this)" tabindex="-1">${icon('eye', 18)}</button>
           </div>
         </div>
-        <div>
-          <label class="field-label">Password Baru</label>
+        <div><label class="field-label">Password Baru</label>
           <div class="password-wrap">
             <input type="password" id="pwd-baru" class="field-input" minlength="6">
             <button type="button" class="password-toggle" onclick="togglePassword('pwd-baru', this)" tabindex="-1">${icon('eye', 18)}</button>
           </div>
         </div>
-        <div>
-          <label class="field-label">Konfirmasi Password Baru</label>
+        <div><label class="field-label">Konfirmasi Password Baru</label>
           <div class="password-wrap">
             <input type="password" id="pwd-konfirm" class="field-input" minlength="6">
             <button type="button" class="password-toggle" onclick="togglePassword('pwd-konfirm', this)" tabindex="-1">${icon('eye', 18)}</button>
@@ -36,24 +33,19 @@ ROUTES.gantipwd = el => {
     </div>`;
 
   window.simpanPassword = async () => {
-    const lama = $('#pwd-lama').value;
-    const baru = $('#pwd-baru').value;
-    const konfirm = $('#pwd-konfirm').value;
-    const err = $('#pwd-error');
-    err.classList.add('hidden');
+    const lama = $('#pwd-lama').value, baru = $('#pwd-baru').value, konfirm = $('#pwd-konfirm').value;
+    const err = $('#pwd-error'); err.classList.add('hidden');
     const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
-
     if (!lama || !baru || !konfirm) return fail('Lengkapi semua field');
     if (baru.length < 6) return fail('Password baru minimal 6 karakter');
     if (baru !== konfirm) return fail('Konfirmasi password tidak cocok');
+    if (baru === lama) return fail('Password baru tidak boleh sama');
 
     const hashLama = await hashPwd(lama);
     const legacy = legacyHash(lama);
     const u = USERS.find(x => x.id_user === CURRENT_USER.id_user);
     if (!u) return fail('User tidak ditemukan');
-    if (u.password_hash !== hashLama && u.password_hash !== legacy && u.password !== legacy)
-      return fail('Password lama salah');
-    if (baru === lama) return fail('Password baru tidak boleh sama dengan password lama');
+    if (u.password_hash !== hashLama && u.password_hash !== legacy && u.password !== legacy) return fail('Password lama salah');
 
     u.password_hash = await hashPwd(baru);
     u.password = undefined;
