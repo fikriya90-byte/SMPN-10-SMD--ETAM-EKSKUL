@@ -1,13 +1,12 @@
 /* =====================================================================
-   firestore-sync.js — Auto-sync data ke Firebase Firestore
-   Semua data user, ekskul, anggota, pembina disimpan di Firestore
+   firestore-sync.js — Auto-sync data ke Firestore (SEMUA collection)
    ===================================================================== */
 
 let _fsDb = null;
 let _fsSyncTimer = null;
 
 function fsGetDb() {
-  if (!_fsDb && typeof firebase !== 'undefined' && firebase.apps.length) {
+  if (!_fsDb && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
     try { _fsDb = firebase.firestore(); } catch(e) { console.warn('[FS] Firestore tidak tersedia', e); }
   }
   return _fsDb;
@@ -20,31 +19,25 @@ function fsScheduleSync() {
 
 async function fsSyncNow() {
   const db = fsGetDb();
-  if (!db) return;
+  if (!db) { console.warn('[FS] DB belum siap'); return; }
   try {
-    if (USERS.length) {
-      const b = db.batch();
-      USERS.forEach(u => { if (u.id_user) b.set(db.collection('etam_users').doc(u.id_user), JSON.parse(JSON.stringify(u)), { merge: true }); });
-      await b.commit();
+    const collections = [
+      { name: 'etam_users',    data: USERS,    key: 'id_user' },
+      { name: 'etam_ekskul',   data: EKSKUL,   key: 'id_ekskul' },
+      { name: 'etam_anggota',  data: ANGGOTA,  key: 'id_anggota' },
+      { name: 'etam_pembina',  data: PEMBINA,  key: 'id_pembina' }
+    ];
+    for (const c of collections) {
+      if (!c.data || !c.data.length) continue;
+      const batch = db.batch();
+      c.data.forEach(item => {
+        if (item[c.key]) batch.set(db.collection(c.name).doc(item[c.key]), JSON.parse(JSON.stringify(item)), { merge: true });
+      });
+      await batch.commit();
     }
-    if (EKSKUL.length) {
-      const b = db.batch();
-      EKSKUL.forEach(e => { if (e.id_ekskul) b.set(db.collection('etam_ekskul').doc(e.id_ekskul), JSON.parse(JSON.stringify(e)), { merge: true }); });
-      await b.commit();
-    }
-    if (ANGGOTA.length) {
-      const b = db.batch();
-      ANGGOTA.forEach(a => { if (a.id_anggota) b.set(db.collection('etam_anggota').doc(a.id_anggota), JSON.parse(JSON.stringify(a)), { merge: true }); });
-      await b.commit();
-    }
-    if (PEMBINA.length) {
-      const b = db.batch();
-      PEMBINA.forEach(p => { if (p.id_pembina) b.set(db.collection('etam_pembina').doc(p.id_pembina), JSON.parse(JSON.stringify(p)), { merge: true }); });
-      await b.commit();
-    }
-    console.log('[Firestore] Sync OK — Users:' + USERS.length + ' Ekskul:' + EKSKUL.length + ' Anggota:' + ANGGOTA.length + ' Pembina:' + PEMBINA.length);
+    console.log('[FS] Sync OK — Users:' + USERS.length + ' Ekskul:' + EKSKUL.length + ' Anggota:' + ANGGOTA.length + ' Pembina:' + PEMBINA.length);
   } catch (e) {
-    console.warn('[Firestore] Sync gagal:', e.message);
+    console.warn('[FS] Sync gagal:', e.message);
   }
 }
 
@@ -53,29 +46,23 @@ async function fsDeleteUser(idUser) {
   if (!db) return;
   try {
     await db.collection('etam_users').doc(idUser).delete();
-    const angSnap = await db.collection('etam_anggota').where('id_user', '==', idUser).get();
-    angSnap.docs.forEach(d => d.ref.delete());
-    const pemSnap = await db.collection('etam_pembina').where('id_user', '==', idUser).get();
-    pemSnap.docs.forEach(d => d.ref.delete());
-    console.log('[Firestore] User dihapus:', idUser);
-  } catch(e) { console.warn('[Firestore] Delete gagal:', e.message); }
+    for (const col of ['etam_anggota', 'etam_pembina']) {
+      const snap = await db.collection(col).where('id_user', '==', idUser).get();
+      snap.docs.forEach(d => d.ref.delete());
+    }
+    console.log('[FS] User dihapus:', idUser);
+  } catch(e) { console.warn('[FS] Delete gagal:', e.message); }
 }
 
 async function fsDeleteAnggota(idAnggota) {
   const db = fsGetDb();
-  if (!db) return;
+  if (!db || !idAnggota) return;
   try { await db.collection('etam_anggota').doc(idAnggota).delete(); } catch(e) {}
-}
-
-async function fsPushUser(u) {
-  const db = fsGetDb();
-  if (!db || !u || !u.id_user) return;
-  try { await db.collection('etam_users').doc(u.id_user).set(JSON.parse(JSON.stringify(u)), { merge: true }); } catch(e) {}
 }
 
 async function fsPullAll() {
   const db = fsGetDb();
-  if (!db) return false;
+  if (!db) { console.warn('[FS] Pull gagal: DB belum siap'); return false; }
   try {
     const [uS, eS, aS, pS] = await Promise.all([
       db.collection('etam_users').get(),
@@ -83,16 +70,30 @@ async function fsPullAll() {
       db.collection('etam_anggota').get(),
       db.collection('etam_pembina').get()
     ]);
-    if (!uS.empty) { USERS = uS.docs.map(d => d.data()); DB.set('users', USERS); }
+    // Untuk USERS: merge (jangan overwrite admin lokal)
+    if (!uS.empty) {
+      const fsUsers = uS.docs.map(d => d.data());
+      const map = {};
+      USERS.forEach(u => { if (u.id_user) map[u.id_user] = u; });
+      fsUsers.forEach(u => { if (u.id_user) map[u.id_user] = u; });
+      USERS = Object.values(map);
+      DB.set('users', USERS);
+    }
     if (!eS.empty) { EKSKUL = eS.docs.map(d => d.data()); DB.set('ekskul', EKSKUL); }
     if (!aS.empty) { ANGGOTA = aS.docs.map(d => d.data()); DB.set('anggota', ANGGOTA); }
     if (!pS.empty) { PEMBINA = pS.docs.map(d => d.data()); DB.set('pembina', PEMBINA); }
-    console.log('[Firestore] Pull OK — Users:' + USERS.length + ' Ekskul:' + EKSKUL.length + ' Anggota:' + ANGGOTA.length + ' Pembina:' + PEMBINA.length);
+    console.log('[FS] Pull OK — Users:' + USERS.length + ' Ekskul:' + EKSKUL.length + ' Anggota:' + ANGGOTA.length + ' Pembina:' + PEMBINA.length);
     return true;
   } catch(e) {
-    console.warn('[Firestore] Pull gagal:', e.message);
+    console.warn('[FS] Pull gagal:', e.message);
     return false;
   }
+}
+
+async function fsPushUser(u) {
+  const db = fsGetDb();
+  if (!db || !u || !u.id_user) return;
+  try { await db.collection('etam_users').doc(u.id_user).set(JSON.parse(JSON.stringify(u)), { merge: true }); } catch(e) {}
 }
 
 window.fsSyncNow = fsSyncNow;
