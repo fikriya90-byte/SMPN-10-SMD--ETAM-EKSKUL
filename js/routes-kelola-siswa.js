@@ -1,6 +1,6 @@
 /* =====================================================================
    routes-kelola-siswa.js — Kelola Siswa oleh Guru/Pelatih/Admin
-   Fitur: Lihat, Edit, Hapus, Ubah status anggota per ekskul
+   Fitur: Lihat, Edit, Reset Password, Hapus (konfirmasi 3x)
    ===================================================================== */
 
 ROUTES.kelolaSiswa = el => {
@@ -72,6 +72,7 @@ ROUTES.kelolaSiswa = el => {
                       <td style="text-align:center">
                         <div class="flex gap-1 justify-center flex-wrap">
                           <button onclick="editSiswa('${u.id_user}')" class="btn btn-blue" style="padding:4px 8px;font-size:11px">${icon('edit', 11)} Edit</button>
+                          <button onclick="resetPwdSiswa('${u.id_user}')" class="btn btn-warning" style="padding:4px 8px;font-size:11px">${icon('lupapwd', 11)} Reset</button>
                           <button onclick="hapusSiswa('${u.id_user}')" class="btn btn-danger" style="padding:4px 8px;font-size:11px">${icon('trash', 11)} Hapus</button>
                         </div>
                       </td>
@@ -90,13 +91,12 @@ ROUTES.kelolaSiswa = el => {
   window.setFilterEks = v => { filterEks = v; el.innerHTML = render(); };
   window.doSearchKelola = v => {
     search = v;
-    const inp = el.querySelector('input[placeholder="Nama / NIS / Kelas"]');
-    const pos = inp ? inp.selectionStart : 0;
     el.innerHTML = render();
     const inp2 = el.querySelector('input[placeholder="Nama / NIS / Kelas"]');
-    if (inp2) { inp2.focus(); inp2.setSelectionRange(pos, pos); }
+    if (inp2) { inp2.focus(); inp2.value = v; }
   };
 
+  /* ============ EDIT SISWA ============ */
   window.editSiswa = idUser => {
     const u = userById(idUser);
     if (!u) return;
@@ -147,7 +147,6 @@ ROUTES.kelolaSiswa = el => {
       a.status_anggota = val;
       if (val === 'aktif') { a.verified_by = CURRENT_USER.id_user; a.verified_at = new Date().toISOString(); }
       persist();
-      if (typeof fsSyncNow === 'function') fsSyncNow();
       showToast('Status: ' + val);
     };
     window.saveEditSiswa = idUser => {
@@ -164,7 +163,6 @@ ROUTES.kelolaSiswa = el => {
       u.no_wa = $('#es-wa').value.trim();
       if (email) u.email = email;
       persist();
-      if (typeof fsSyncNow === 'function') fsSyncNow();
       logAction('edit_siswa', { idUser, nama });
       closeModal();
       showToast('Data siswa diperbarui');
@@ -172,16 +170,53 @@ ROUTES.kelolaSiswa = el => {
     };
   };
 
+  /* ============ RESET PASSWORD SISWA ============ */
+  window.resetPwdSiswa = idUser => {
+    const u = userById(idUser);
+    if (!u) return;
+    if (!ids.some(id => ANGGOTA.some(a => a.id_user === idUser && a.id_ekskul === id && ids.includes(id)))) return showToast('Tidak punya akses', 'error');
+    if (!confirm(`Reset password siswa "${u.nama_lengkap}"?\n\nPassword baru akan di-generate otomatis.`)) return;
+    if (!confirm('Yakin ingin mereset password siswa ini?')) return;
+
+    const newPwd = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
+    u.password_hash = hashPwd(newPwd);
+    u.password_plain = newPwd;
+    persist();
+    logAction('reset_pwd_siswa', { idUser, nama: u.nama_lengkap });
+
+    const pesan = `Assalamualaikum ${u.nama_lengkap}, password ETAM Anda telah direset oleh Pembina:\n\nEmail: ${u.email}\nPassword Baru: ${newPwd}\n\nSegera login dan ganti password di menu "Ganti Password".\n\nTerima kasih 🙏`;
+
+    $('#modal-root').innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="card w-full max-w-md animate-fade-in">
+          <div class="card-header"><h3 class="font-display text-base">${icon('check', 18)} Password Direset</h3><button onclick="closeModal()" class="btn-close-notif">${icon('close', 12)}</button></div>
+          <div class="card-body space-y-3">
+            <div class="alert alert-info" style="font-size:12px">${icon('info', 14)} Password ini hanya muncul sekali. Kirimkan ke siswa.</div>
+            <div style="padding:12px;background:var(--surface-2);border-radius:12px">
+              <div class="akun-row"><span class="akun-label">Nama</span><span class="akun-value">${esc(u.nama_lengkap)}</span></div>
+              <div class="akun-row"><span class="akun-label">Email</span><span class="akun-value" onclick="navigator.clipboard.writeText('${esc(u.email)}').then(()=>showToast('Email disalin'))" style="cursor:pointer">${esc(u.email)} ${icon('link', 12)}</span></div>
+              <div class="akun-row"><span class="akun-label">Password</span><span class="akun-value" onclick="navigator.clipboard.writeText('${esc(newPwd)}').then(()=>showToast('Password disalin'))" style="cursor:pointer;color:#FBBF24;font-weight:800">${esc(newPwd)} ${icon('link', 12)}</span></div>
+            </div>
+            ${u.no_wa ? `<button onclick="openWA('${esc(u.no_wa)}', \`${pesan.replace(/`/g,'\\`')}\`)" class="btn btn-success w-full">${icon('wa', 16)} Kirim via WhatsApp</button>` : ''}
+            <button onclick="closeModal()" class="btn btn-primary w-full">Selesai</button>
+          </div>
+        </div>
+      </div>`;
+  };
+
+  /* ============ HAPUS SISWA (KONFIRMASI 3x) ============ */
   window.hapusSiswa = idUser => {
     const u = userById(idUser);
     if (!u) return;
     const anggotaList = ANGGOTA.filter(a => a.id_user === idUser && ids.includes(a.id_ekskul));
     const ekskulNames = anggotaList.map(a => ekskulById(a.id_ekskul)?.nama_ekskul).filter(Boolean).join(', ');
 
-    // KONFIRMASI 3 LAPIS
+    // KONFIRMASI 1
     if (!confirm(`⚠️ Hapus siswa "${u.nama_lengkap}"?\n\nDari ekskul: ${ekskulNames}\n\nData akun, presensi, dan kas siswa akan dihapus PERMANEN.`)) return;
+    // KONFIRMASI 2
     if (!confirm(`Yakin ingin menghapus "${u.nama_lengkap}"?\n\nTindakan ini TIDAK BISA dibatalkan.`)) return;
-    const ketik = prompt('Ketik "HAPUS" untuk konfirmasi final:');
+    // KONFIRMASI 3
+    const ketik = prompt('Ketik "HAPUS" (huruf kapital) untuk konfirmasi final:');
     if (ketik !== 'HAPUS') return showToast('Dibatalkan', 'warning');
 
     USERS = USERS.filter(x => x.id_user !== idUser);
