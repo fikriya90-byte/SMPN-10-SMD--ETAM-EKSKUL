@@ -1,5 +1,6 @@
 /* =====================================================================
-   init.js — Bootstrap dengan Firebase Session + Firestore Pull
+   init.js — Bootstrap murni Firebase Auth (NO localStorage session)
+   Session 100% dari Firebase Auth persistence
    ===================================================================== */
 
 async function loadFotosFromDBInit() {
@@ -20,37 +21,36 @@ async function init() {
 
   // ============ AUTO PULL DARI FIRESTORE ============
   if (typeof fsPullAll === 'function') {
-    try {
-      console.log('[Init] Pull data dari Firestore...');
-      const ok = await fsPullAll();
-      if (ok) console.log('[Init] Data dari Firestore berhasil dimuat');
-    } catch(e) {
-      console.warn('[Init] fsPullAll error:', e);
-    }
-  } else {
-    console.warn('[Init] fsPullAll tidak tersedia — pastikan firestore-sync.js dimuat');
+    try { await fsPullAll(); } catch(e) { console.warn('[Init] fsPullAll error:', e); }
   }
 
-  // Cek session Firebase
-  let firebaseUser = null;
-  try {
-    firebaseUser = await fbGetCurrentUser();
-  } catch (e) {
-    console.warn('[Firebase] Session check gagal:', e);
-  }
-
+  // ============ CEK SESSION DARI FIREBASE AUTH ============
   let u = null;
-  if (firebaseUser) {
-    u = USERS.find(x =>
-      x.firebase_uid === firebaseUser.uid ||
-      (x.email && x.email.toLowerCase() === firebaseUser.email.toLowerCase())
-    );
-  }
+  try {
+    const firebaseUser = await fbGetCurrentUser();
+    if (firebaseUser) {
+      u = USERS.find(x =>
+        x.firebase_uid === firebaseUser.uid ||
+        (x.email && x.email.toLowerCase() === firebaseUser.email.toLowerCase())
+      );
+      if (u) {
+        console.log('[Init] Session Firebase Auth OK:', u.nama_lengkap, '·', u.role_sistem);
+      } else {
+        console.warn('[Init] User login di Firebase tapi tidak ada di data lokal. Mencoba pull ulang...');
+        if (typeof fsPullAll === 'function') {
+          await fsPullAll();
+          u = USERS.find(x =>
+            x.firebase_uid === firebaseUser.uid ||
+            (x.email && x.email.toLowerCase() === firebaseUser.email.toLowerCase())
+          );
+        }
+      }
+    }
+  } catch(e) { console.warn('[Init] Firebase Auth check gagal:', e); }
 
   if (u && u.active) {
-    // Restore user session
     CURRENT_USER = Object.assign({}, u);
-    CURRENT_USER._firebase_uid = firebaseUser.uid;
+    CURRENT_USER._firebase_uid = u.firebase_uid || '';
 
     if (CURRENT_USER.role_sistem === 'murid') {
       const a = ANGGOTA.find(x =>
@@ -68,17 +68,14 @@ async function init() {
     await loadFotosFromDBInit();
     enterApp();
   } else {
-    localStorage.removeItem('etam_session');
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').classList.add('hidden');
     if (typeof selectLoginRole === 'function') selectLoginRole('murid');
   }
 
-  // Set brand year
   const y = document.getElementById('brand-year');
   if (y) y.textContent = new Date().getFullYear();
 
-  // Set icon header
   const themeIcon = document.getElementById('header-theme-icon');
   if (themeIcon && typeof icon === 'function') themeIcon.innerHTML = icon('theme', 16);
   const notifIcon = document.getElementById('header-notif-icon');
@@ -87,7 +84,6 @@ async function init() {
   cekBackupMingguan();
 }
 
-/* ============ BACKUP MINGGUAN ============ */
 function cekBackupMingguan() {
   try {
     const last = localStorage.getItem('etam_last_backup');
