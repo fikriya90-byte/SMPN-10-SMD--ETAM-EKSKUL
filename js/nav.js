@@ -235,4 +235,4 @@ window.renderNav = renderNav;
 window.renderHeaderContext = renderHeaderContext;
 window.openSidebarMobile = openSidebarMobile;
 window.closeSidebarMobile = closeSidebarMobile;
-window.toggleSidebar = toggleSidebar;
+window.toggleSidebar = toggleSidebar; 
