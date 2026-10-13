@@ -14,7 +14,18 @@ const JABATAN_LABEL = {
   pembina: 'Pembina / Pelatih'
 };
 
-/* ============ JENIS SESI (untuk latihan rutin + tambahan) ============ */
+/* ============ LEVEL STRUKTUR ============ */
+const LEVEL_LABEL = {
+  koordinator: 'Koordinator Ekstrakurikuler',
+  pembina: 'Pembina',
+  pelatih: 'Pelatih',
+  ketua: 'Ketua',
+  wakil: 'Wakil Ketua',
+  pengurus: 'Pengurus',
+  anggota: 'Anggota'
+};
+
+/* ============ JENIS SESI ============ */
 const JENIS_SESI_LABEL = {
   rutin: 'Latihan Rutin',
   tambahan: 'Latihan Tambahan',
@@ -40,7 +51,6 @@ const JENIS_SESI_ICON = {
 };
 
 /* ============ STATE GLOBAL ============ */
-
 let USERS = [];
 let EKSKUL = [];
 let PEMBINA = [];
@@ -67,7 +77,6 @@ let loginRole = 'murid';
 let regRole = 'murid';
 
 /* ============ ADMIN DEFAULT ============ */
-
 const ADMIN_DEFAULT = {
   id_user: 'u_admin',
   nama_lengkap: 'Administrator ETAM',
@@ -84,17 +93,18 @@ const ADMIN_DEFAULT = {
 const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
 
 /* ============ DEFAULT SETTINGS ============ */
-
 const DEFAULT_SETTINGS = {
   school_name: 'UPT SMP Negeri 10 Samarinda',
   kepala_upt: 'Tuti Susandra Dewi, S.Pd., M.Pd',
   koordinator_ekskul: 'Muhammad Ibnu Syamwardana, S.Pd., M.Pd',
+  koordinator_nip: '',
+  koordinator_wa: '',
+  koordinator_foto: '',
   dinas: 'DINAS PENDIDIKAN DAN KEBUDAYAAN',
   kota: 'PEMERINTAH KOTA SAMARINDA',
   alamat_sekolah: 'Jl. Untung Suropati No.01, Karang Asam Ulu, Sungai Kuning 75126'
 };
 
 /* ============ LOGO ============ */
-
 const LOGO_SMP = 'https://iili.io/nBiviCX.png';
 const LOGO_ETAM = 'https://iili.io/nVPEvv2.md.png';
