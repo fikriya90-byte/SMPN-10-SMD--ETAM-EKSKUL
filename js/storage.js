@@ -144,6 +144,48 @@ function hapusPermanenSiswa(idUser) {
   return true;
 }
 
+/* ============ KOORDINATOR & PEMBINA HELPER ============ */
+
+/** Ambil info koordinator dari APP_SETTINGS */
+function getKoordinatorInfo() {
+  return {
+    nama: APP_SETTINGS.koordinator_ekskul || '',
+    nip: APP_SETTINGS.koordinator_nip || '',
+    wa: APP_SETTINGS.koordinator_wa || '',
+    foto: APP_SETTINGS.koordinator_foto || ''
+  };
+}
+
+/** Cari user admin berdasarkan nama koordinator (untuk link foto/WA) */
+function getKoordinatorUser() {
+  const info = getKoordinatorInfo();
+  if (!info.nama) return null;
+  const admin = USERS.find(u => u.role_sistem === 'admin');
+  return admin || null;
+}
+
+/** Ambil pembina ekskul berdasarkan role user (guru vs pelatih) */
+function getPembinaByTipe(idEkskul, tipe) {
+  // tipe: 'guru' atau 'pelatih'
+  const list = PEMBINA.filter(p => p.id_ekskul === idEkskul && p.status_akun === 'aktif');
+  return list.map(p => {
+    const u = userById(p.id_user);
+    if (!u) return null;
+    return { user: u, tipe: u.role_sistem, pembinaRec: p };
+  }).filter(x => x && x.tipe === tipe).map(x => x.user);
+}
+
+/** Ambil semua pembina (guru + pelatih) */
+function getSemuaPembina(idEkskul) {
+  const list = PEMBINA.filter(p => p.id_ekskul === idEkskul && p.status_akun === 'aktif');
+  return list.map(p => {
+    const u = userById(p.id_user);
+    if (!u) return null;
+    return u;
+  }).filter(Boolean);
+}
+
+/* ============ SEED ============ */
 async function seedIfEmpty() {
   USERS = DB.get('users', null) || [];
   const adminExists = USERS.some(u => u.email === ADMIN_DEFAULT.email);
@@ -187,3 +229,7 @@ window.resetStrukturUntukTahunBaru = resetStrukturUntukTahunBaru;
 window.arsipkanSiswa = arsipkanSiswa;
 window.restoreSiswa = restoreSiswa;
 window.hapusPermanenSiswa = hapusPermanenSiswa;
+window.getKoordinatorInfo = getKoordinatorInfo;
+window.getKoordinatorUser = getKoordinatorUser;
+window.getPembinaByTipe = getPembinaByTipe;
+window.getSemuaPembina = getSemuaPembina;
