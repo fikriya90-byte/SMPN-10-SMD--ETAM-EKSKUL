@@ -113,24 +113,54 @@ ROUTES.lupapwd = el => {
 };
 
 ROUTES.setting = el => {
-  const koordInfo = getKoordinatorInfo();
   el.innerHTML = `
+    <!-- KEPALA SEKOLAH -->
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="font-display text-base">${icon('user', 18)} Kepala UPT / Sekolah</h2></div>
+      <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="sm:col-span-2">
+          <label class="field-label">Nama Lengkap & Gelar</label>
+          <input id="ks-nama" class="field-input" value="${esc(APP_SETTINGS.kepala_upt || '')}" placeholder="cth: Tuti Susandra Dewi, S.Pd., M.Pd">
+        </div>
+        <div>
+          <label class="field-label">NIP (opsional)</label>
+          <input id="ks-nip" class="field-input" value="${esc(APP_SETTINGS.kepala_nip || '')}" placeholder="Kosongkan jika tidak ada NIP">
+          <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika tidak ada NIP</p>
+        </div>
+        <div>
+          <label class="field-label">No. WhatsApp (opsional)</label>
+          <input id="ks-wa" class="field-input" value="${esc(APP_SETTINGS.kepala_wa || '')}" placeholder="08xx">
+        </div>
+        <div class="sm:col-span-2 flex justify-end">
+          <button onclick="saveKepalaSekolah()" class="btn btn-primary">${icon('check', 14)} Simpan Kepala Sekolah</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KOORDINATOR EKSKUL -->
     <div class="card mb-4">
       <div class="card-header"><h2 class="font-display text-base">${icon('user', 18)} Koordinator Ekstrakurikuler</h2></div>
       <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="sm:col-span-2">
-          <label class="field-label">Nama Koordinator</label>
-          <input id="k-nama" class="field-input" value="${esc(koordInfo.nama)}" placeholder="Nama lengkap & gelar">
+          <label class="field-label">Nama Lengkap & Gelar</label>
+          <input id="k-nama" class="field-input" value="${esc(APP_SETTINGS.koordinator_ekskul || '')}" placeholder="cth: Muhammad Ibnu Syamwardana, S.Pd.">
         </div>
-        <div><label class="field-label">NIP</label><input id="k-nip" class="field-input" value="${esc(koordInfo.nip)}" placeholder="NIP"></div>
-        <div><label class="field-label">No. WhatsApp</label><input id="k-wa" class="field-input" value="${esc(koordInfo.wa)}" placeholder="08xx"></div>
+        <div>
+          <label class="field-label">NIP (opsional)</label>
+          <input id="k-nip" class="field-input" value="${esc(APP_SETTINGS.koordinator_nip || '')}" placeholder="Kosongkan jika tidak ada NIP">
+          <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika tidak ada NIP</p>
+        </div>
+        <div>
+          <label class="field-label">No. WhatsApp (opsional)</label>
+          <input id="k-wa" class="field-input" value="${esc(APP_SETTINGS.koordinator_wa || '')}" placeholder="08xx">
+        </div>
         <div class="sm:col-span-2">
           <label class="field-label">Foto Koordinator (opsional)</label>
           <input id="k-foto" type="file" accept="image/*" class="field-input" style="padding:6px">
         </div>
-        ${koordInfo.foto ? `
+        ${APP_SETTINGS.koordinator_foto ? `
           <div class="sm:col-span-2 text-center">
-            <img src="${koordInfo.foto}" style="max-height:120px;border-radius:12px;margin:0 auto">
+            <img src="${APP_SETTINGS.koordinator_foto}" style="max-height:120px;border-radius:12px;margin:0 auto">
             <button onclick="hapusFotoKoordinator()" class="btn btn-danger" style="margin-top:8px;padding:5px 10px;font-size:12px;">Hapus Foto</button>
           </div>
         ` : ''}
@@ -140,37 +170,42 @@ ROUTES.setting = el => {
       </div>
     </div>
 
+    <!-- IDENTITAS SEKOLAH -->
     <div class="card mb-4">
       <div class="card-header"><h2 class="font-display text-base">${icon('building', 18)} Identitas Sekolah</h2></div>
       <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div class="sm:col-span-2"><label class="field-label">Nama Sekolah</label><input id="s-school" class="field-input"></div>
-        <div><label class="field-label">Kepala UPT</label><input id="s-kepala" class="field-input"></div>
-        <div><label class="field-label">Dinas</label><input id="s-dinas" class="field-input"></div>
-        <div><label class="field-label">Kota</label><input id="s-kota" class="field-input"></div>
-        <div class="sm:col-span-2"><label class="field-label">Alamat</label><input id="s-alamat" class="field-input"></div>
-        <div class="sm:col-span-2 flex justify-end"><button onclick="saveSettings()" class="btn btn-primary">Simpan Identitas</button></div>
+        <div class="sm:col-span-2"><label class="field-label">Nama Sekolah</label><input id="s-school" class="field-input" value="${esc(APP_SETTINGS.school_name || '')}"></div>
+        <div><label class="field-label">Dinas</label><input id="s-dinas" class="field-input" value="${esc(APP_SETTINGS.dinas || '')}"></div>
+        <div><label class="field-label">Kota</label><input id="s-kota" class="field-input" value="${esc(APP_SETTINGS.kota || '')}"></div>
+        <div class="sm:col-span-2"><label class="field-label">Alamat</label><input id="s-alamat" class="field-input" value="${esc(APP_SETTINGS.alamat_sekolah || '')}"></div>
+        <div class="sm:col-span-2 flex justify-end"><button onclick="saveSettings()" class="btn btn-primary">${icon('check', 14)} Simpan Identitas</button></div>
       </div>
     </div>
 
+    <!-- BACKUP -->
     <div class="card mb-4">
       <div class="card-header"><h3 class="font-display text-base">${icon('download', 18)} Backup & Restore</h3></div>
       <div class="card-body flex flex-wrap gap-2">
-        <button onclick="backupAll()" class="btn btn-primary">Backup JSON</button>
-        <label class="btn btn-dark cursor-pointer">Restore<input type="file" accept=".json" onchange="restoreAll(event)" style="display:none"></label>
-        <button onclick="hapusFotoLama()" class="btn btn-danger">Hapus Foto Lama (>1 bulan)</button>
+        <button onclick="backupAll()" class="btn btn-primary">${icon('download', 14)} Backup JSON</button>
+        <label class="btn btn-dark cursor-pointer">${icon('upload', 14)} Restore<input type="file" accept=".json" onchange="restoreAll(event)" style="display:none"></label>
+        <button onclick="hapusFotoLama()" class="btn btn-danger">${icon('trash', 14)} Hapus Foto Lama (>1 bulan)</button>
       </div>
     </div>
 
+    <!-- ZONA BAHAYA -->
     <div class="card">
       <div class="card-header"><h3 class="font-display text-base" style="color:#F87171">${icon('alert', 18)} Zona Bahaya</h3></div>
-      <div class="card-body"><button onclick="resetAll()" class="btn btn-danger">Reset Semua Data</button></div>
+      <div class="card-body"><button onclick="resetAll()" class="btn btn-danger">${icon('alert', 14)} Reset Semua Data</button></div>
     </div>`;
 
-  $('#s-school').value = APP_SETTINGS.school_name || '';
-  $('#s-kepala').value = APP_SETTINGS.kepala_upt || '';
-  $('#s-dinas').value = APP_SETTINGS.dinas || '';
-  $('#s-kota').value = APP_SETTINGS.kota || '';
-  $('#s-alamat').value = APP_SETTINGS.alamat_sekolah || '';
+  window.saveKepalaSekolah = () => {
+    APP_SETTINGS.kepala_upt = $('#ks-nama').value.trim();
+    APP_SETTINGS.kepala_nip = $('#ks-nip').value.trim();
+    APP_SETTINGS.kepala_wa = $('#ks-wa').value.trim();
+    persist();
+    logAction('save_kepala_sekolah', {});
+    showToast('Data Kepala Sekolah disimpan');
+  };
 
   window.saveKoordinator = async () => {
     APP_SETTINGS.koordinator_ekskul = $('#k-nama').value.trim();
@@ -178,13 +213,11 @@ ROUTES.setting = el => {
     APP_SETTINGS.koordinator_wa = $('#k-wa').value.trim();
     const f = $('#k-foto').files[0];
     if (f) {
-      try {
-        APP_SETTINGS.koordinator_foto = await compressImage(f, 512, 0.85);
-      } catch (err) { showToast('Gagal proses foto', 'error'); }
+      try { APP_SETTINGS.koordinator_foto = await compressImage(f, 512, 0.85); } catch (err) { showToast('Gagal proses foto', 'error'); }
     }
     persist();
     logAction('save_koordinator', {});
-    showToast('Data koordinator disimpan');
+    showToast('Data Koordinator disimpan');
     showTab('setting');
   };
 
@@ -198,7 +231,6 @@ ROUTES.setting = el => {
 
   window.saveSettings = () => {
     APP_SETTINGS.school_name = $('#s-school').value;
-    APP_SETTINGS.kepala_upt = $('#s-kepala').value;
     APP_SETTINGS.dinas = $('#s-dinas').value;
     APP_SETTINGS.kota = $('#s-kota').value;
     APP_SETTINGS.alamat_sekolah = $('#s-alamat').value;
