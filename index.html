@@ -326,22 +326,25 @@
 <div id="print-area"></div>
 
 <!-- ================= SCRIPTS ================= -->
+<!-- URUTAN PENTING: JANGAN DIUBAH -->
 
-<!-- Firebase Config — HARUS PALING ATAS -->
+<!-- 1. Firebase Config — HARUS PALING ATAS -->
 <script src="js/firebase-config.js"></script>
 
-<!-- Utilities -->
-<script src="js/icons.js"></script>
+<!-- 2. App Config (konstanta: ADMIN_DEFAULT, BULAN, JABATAN_LABEL, dll) -->
 <script src="js/config.js"></script>
+
+<!-- 3. Utilities -->
+<script src="js/icons.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/photo.js"></script>
 
-<!-- Auth & Nav -->
+<!-- 4. Auth & Nav -->
 <script src="js/auth.js"></script>
 <script src="js/nav.js"></script>
 
-<!-- Routes -->
+<!-- 5. Routes -->
 <script src="js/routes-notifikasi.js"></script>
 <script src="js/routes-password.js"></script>
 <script src="js/routes-export.js"></script>
@@ -355,7 +358,7 @@
 <script src="js/routes-kas.js"></script>
 <script src="js/routes-laporan.js"></script>
 
-<!-- Bootstrap -->
+<!-- 6. Bootstrap (paling akhir) -->
 <script src="js/init.js"></script>
 
 <script>
