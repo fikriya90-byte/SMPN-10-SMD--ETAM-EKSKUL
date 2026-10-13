@@ -5,7 +5,7 @@
 ROUTES.penilaian = el => {
   const r = CURRENT_USER.role_sistem;
   if (r !== 'guru' && r !== 'pelatih' && r !== 'admin') {
-    return el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Hanya Guru/Pelatih/Admin yang bisa mengakses.</div></div>`;
+    return el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Hanya Guru/Pelatih/Admin.</div></div>`;
   }
 
   const ids = r === 'admin' ? EKSKUL.map(e => e.id_ekskul) : userEkskulIds(CURRENT_USER.id_user);
@@ -16,7 +16,6 @@ ROUTES.penilaian = el => {
   const templates = getTemplates(idEks);
   const anggota = anggotaAktifOf(idEks);
 
-  // State: tab yang aktif
   let activeTab = 'input';
   let activeTplId = templates[0]?.id_template || '';
 
@@ -33,7 +32,7 @@ ROUTES.penilaian = el => {
           <div class="card-body text-center py-8">
             ${icon('info', 48)}
             <p class="mt-3 text-sm" style="color:var(--text-muted)">Belum ada template penilaian.</p>
-            <p class="text-xs mt-1" style="color:var(--text-dim)">Buat template dulu untuk menentukan aspek & deskripsi penilaian A/B/C/D.</p>
+            <p class="text-xs mt-1" style="color:var(--text-dim)">Buat template dulu untuk menentukan aspek &amp; deskripsi A/B/C/D.</p>
             <button onclick="openBuatTemplate('${idEks}')" class="btn btn-primary mt-3">${icon('plus', 14)} Buat Template</button>
           </div>
         </div>`;
@@ -44,7 +43,7 @@ ROUTES.penilaian = el => {
         <div class="card-header">
           <div>
             <h2 class="font-display text-base">${icon('chart', 18)} Penilaian — ${esc(e.nama_ekskul)}</h2>
-            <p class="text-xs mt-1" style="color:var(--text-dim)">Tahun Ajaran: <b>${esc(TAHUN_AJARAN_AKTIF)}</b> · Total Siswa: <b>${anggota.length}</b></p>
+            <p class="text-xs mt-1" style="color:var(--text-dim)">Tahun Ajaran: <b>${esc(TAHUN_AJARAN_AKTIF)}</b> · Siswa: <b>${anggota.length}</b></p>
           </div>
           <button onclick="openBuatTemplate('${idEks}')" class="btn btn-primary" style="padding:6px 12px;font-size:12px">${icon('plus', 14)} Template Baru</button>
         </div>
@@ -64,43 +63,40 @@ ROUTES.penilaian = el => {
   function renderContent() {
     const box = document.getElementById('penilaian-content');
     if (!box) return;
-    if (activeTab === 'template') box.innerHTML = renderTemplateTab();
-    else box.innerHTML = renderInputTab();
+    box.innerHTML = activeTab === 'template' ? renderTemplateTab() : renderInputTab();
   }
 
   function renderTemplateTab() {
     return `
-      <div class="card">
-        <div class="card-body">
-          ${templates.length ? templates.map(t => `
-            <div class="seksi-manage-item" style="margin-bottom:10px">
-              <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
-                <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-sm">${esc(t.nama)}</p>
-                  <p class="text-xs mt-1" style="color:var(--text-dim)">${t.aspek.length} aspek · dibuat ${fmtTanggal(t.created_at)}</p>
-                </div>
-                <div class="flex gap-1 flex-wrap">
-                  <button onclick="openEditTemplate('${idEks}','${t.id_template}')" class="btn btn-blue" style="padding:4px 10px;font-size:11.5px">${icon('edit', 12)} Edit</button>
-                  <button onclick="doHapusTemplate('${idEks}','${t.id_template}')" class="btn btn-danger" style="padding:4px 10px;font-size:11.5px">${icon('trash', 12)} Hapus</button>
-                </div>
+      <div class="card"><div class="card-body">
+        ${templates.map(t => `
+          <div class="seksi-manage-item" style="margin-bottom:10px">
+            <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-sm">${esc(t.nama)}</p>
+                <p class="text-xs mt-1" style="color:var(--text-dim)">${t.aspek.length} aspek · ${fmtTanggal(t.created_at)}</p>
               </div>
-              <div style="padding:8px 10px;background:var(--surface);border-radius:8px;font-size:11.5px">
-                ${t.aspek.map(a => `
-                  <div style="padding:6px 0;border-bottom:1px solid var(--border)">
-                    <p class="font-semibold" style="font-size:12.5px">${esc(a.label)}</p>
-                    <div style="display:grid;grid-template-columns:20px 1fr;gap:4px;margin-top:4px;font-size:11px">
-                      <span style="color:#10B981;font-weight:800">A</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.A || '-')}</span>
-                      <span style="color:#3B82F6;font-weight:800">B</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.B || '-')}</span>
-                      <span style="color:#FBBF24;font-weight:800">C</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.C || '-')}</span>
-                      <span style="color:#EF4444;font-weight:800">D</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.D || '-')}</span>
-                    </div>
-                  </div>
-                `).join('')}
+              <div class="flex gap-1 flex-wrap">
+                <button onclick="openEditTemplate('${idEks}','${t.id_template}')" class="btn btn-blue" style="padding:4px 10px;font-size:11.5px">${icon('edit', 12)} Edit</button>
+                <button onclick="doHapusTemplate('${idEks}','${t.id_template}')" class="btn btn-danger" style="padding:4px 10px;font-size:11.5px">${icon('trash', 12)} Hapus</button>
               </div>
             </div>
-          `).join('') : '<p class="text-sm text-center py-6" style="color:var(--text-dim)">Belum ada template.</p>'}
-        </div>
-      </div>`;
+            <div style="padding:8px 10px;background:var(--surface);border-radius:8px;font-size:11.5px">
+              ${t.aspek.map(a => `
+                <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+                  <p class="font-semibold" style="font-size:12.5px">${esc(a.label)}</p>
+                  <div style="display:grid;grid-template-columns:20px 1fr;gap:4px;margin-top:4px;font-size:11px">
+                    <span style="color:#10B981;font-weight:800">A</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.A || '-')}</span>
+                    <span style="color:#3B82F6;font-weight:800">B</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.B || '-')}</span>
+                    <span style="color:#FBBF24;font-weight:800">C</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.C || '-')}</span>
+                    <span style="color:#EF4444;font-weight:800">D</span><span style="color:var(--text-muted)">${esc(a.deskripsi?.D || '-')}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div></div>`;
   }
 
   function renderInputTab() {
@@ -125,7 +121,7 @@ ROUTES.penilaian = el => {
       </div>
 
       <div class="card mb-3">
-        <div class="card-header"><h3 class="font-display text-sm">${icon('info', 16)} Keterangan Nilai — ${esc(tpl.nama)}</h3></div>
+        <div class="card-header"><h3 class="font-display text-sm">${icon('info', 16)} Keterangan Nilai</h3></div>
         <div class="card-body">
           ${tpl.aspek.map(a => `
             <div style="padding:10px;background:var(--surface-2);border-radius:10px;margin-bottom:8px">
@@ -142,13 +138,13 @@ ROUTES.penilaian = el => {
       </div>
 
       <div class="card">
-        <div class="card-header"><h3 class="font-display text-sm">${icon('users', 16)} Input Nilai Siswa (${anggota.length})</h3></div>
+        <div class="card-header"><h3 class="font-display text-sm">${icon('users', 16)} Input Nilai (${anggota.length})</h3></div>
         <div class="card-body p-0">
           <div class="overflow-x-auto custom-scrollbar">
             <table style="min-width:100%">
               <thead><tr>
                 <th style="position:sticky;left:0;background:var(--surface-2);z-index:2;min-width:36px;text-align:center">No</th>
-                <th style="position:sticky;left:36px;background:var(--surface-2);z-index:2;min-width:170px">Nama Siswa</th>
+                <th style="position:sticky;left:36px;background:var(--surface-2);z-index:2;min-width:170px">Nama</th>
                 <th style="min-width:50px;text-align:center">Kelas</th>
                 ${tpl.aspek.map(a => `<th style="text-align:center;min-width:70px;font-size:11px">${esc(a.label)}</th>`).join('')}
               </tr></thead>
@@ -157,23 +153,22 @@ ROUTES.penilaian = el => {
                   const u = userById(ag.id_user);
                   if (!u) return '';
                   const nilai = getNilai(idEks, tpl.id_template, u.id_user, TAHUN_AJARAN_AKTIF);
-                  const cells = tpl.aspek.map(a => {
-                    const v = nilai[a.key] || '';
-                    return `<td style="text-align:center;padding:4px">
-                      <select onchange="setNilai('${idEks}','${tpl.id_template}','${u.id_user}','${a.key}',this.value)" class="field-input" style="padding:5px 4px;font-size:13px;font-weight:800;text-align:center;cursor:pointer;${warnaNilaiSelect(v)}">
-                        <option value="">-</option>
-                        <option value="A" ${v === 'A' ? 'selected' : ''}>A</option>
-                        <option value="B" ${v === 'B' ? 'selected' : ''}>B</option>
-                        <option value="C" ${v === 'C' ? 'selected' : ''}>C</option>
-                        <option value="D" ${v === 'D' ? 'selected' : ''}>D</option>
-                      </select>
-                    </td>`;
-                  }).join('');
                   return `<tr>
                     <td style="position:sticky;left:0;background:var(--surface);z-index:1;text-align:center;font-weight:600">${i + 1}</td>
                     <td style="position:sticky;left:36px;background:var(--surface);z-index:1;font-weight:600;font-size:12.5px">${esc(u.nama_lengkap)}</td>
                     <td style="text-align:center;font-size:12px">${esc(u.kelas || '-')}</td>
-                    ${cells}
+                    ${tpl.aspek.map(a => {
+                      const v = nilai[a.key] || '';
+                      return `<td style="text-align:center;padding:4px">
+                        <select onchange="setNilai('${idEks}','${tpl.id_template}','${u.id_user}','${a.key}',this.value)" class="field-input" style="padding:5px 4px;font-size:13px;font-weight:800;text-align:center;cursor:pointer;${warnaNilaiSelect(v)}">
+                          <option value="">-</option>
+                          <option value="A" ${v === 'A' ? 'selected' : ''}>A</option>
+                          <option value="B" ${v === 'B' ? 'selected' : ''}>B</option>
+                          <option value="C" ${v === 'C' ? 'selected' : ''}>C</option>
+                          <option value="D" ${v === 'D' ? 'selected' : ''}>D</option>
+                        </select>
+                      </td>`;
+                    }).join('')}
                   </tr>`;
                 }).join('') : `<tr><td colspan="${tpl.aspek.length + 3}" class="text-center py-6" style="color:var(--text-dim)">Belum ada anggota</td></tr>`}
               </tbody>
@@ -183,15 +178,11 @@ ROUTES.penilaian = el => {
       </div>`;
   }
 
-  // ============ EXPOSE HANDLER ============
   window.gantiTab = t => { activeTab = t; render(); };
   window.gantiTemplate = id => { activeTplId = id; renderContent(); };
-
   window.setNilai = (idEks, idTpl, idUser, aspekKey, val) => {
     simpanNilai(idEks, idTpl, idUser, TAHUN_AJARAN_AKTIF, aspekKey, val);
     if (val) showToast('Nilai disimpan: ' + val);
-    // Update warna select tanpa full re-render (biar cepat)
-    if (event && event.target) event.target.style.cssText = event.target.style.cssText.replace(/background:[^;]+;?/g, '') + warnaNilaiSelect(val);
   };
 
   window.openBuatTemplate = idEks => openTemplateEditor(idEks, null);
@@ -200,7 +191,6 @@ ROUTES.penilaian = el => {
   window.doTemplate = (idEks, existingId) => {
     const nama = ($('#tpl-nama')?.value || '').trim();
     if (!nama) return showToast('Isi nama template', 'warning');
-
     const aspekList = [];
     document.querySelectorAll('#tpl-aspek-list .tpl-aspek-item').forEach(item => {
       const key = item.dataset.key;
@@ -217,9 +207,7 @@ ROUTES.penilaian = el => {
         }
       });
     });
-
     if (!aspekList.length) return showToast('Minimal 1 aspek', 'warning');
-
     const tpl = {
       id_template: existingId || uid('tpl'),
       nama: nama,
@@ -229,7 +217,6 @@ ROUTES.penilaian = el => {
       updated_at: new Date().toISOString(),
       dibuat_oleh: CURRENT_USER.id_user
     };
-
     simpanTemplate(idEks, tpl);
     logAction(existingId ? 'edit_template_penilaian' : 'buat_template_penilaian', { idEks, idTpl: tpl.id_template });
     closeModal();
@@ -238,7 +225,7 @@ ROUTES.penilaian = el => {
     showTab('penilaian');
   };
 
-  window.tambahAspekBaru = () => {
+  window.doTambahAspekBaru = () => {
     const list = $('#tpl-aspek-list');
     if (!list) return;
     const item = document.createElement('div');
@@ -260,6 +247,15 @@ ROUTES.penilaian = el => {
     list.appendChild(item);
   };
 
+  window.doHapusTemplate = (idEks, idTpl) => {
+    if (!confirm('Hapus template ini? Nilai yang sudah diisi akan hilang.')) return;
+    if (!confirm('Yakin?')) return;
+    hapusTemplate(idEks, idTpl);
+    logAction('hapus_template_penilaian', { idEks, idTpl });
+    showToast('Template dihapus', 'warning');
+    showTab('penilaian');
+  };
+
   function openTemplateEditor(idEks, idTpl) {
     const existing = idTpl ? templates.find(x => x.id_template === idTpl) : null;
     const initialAspek = existing ? existing.aspek : [];
@@ -271,17 +267,16 @@ ROUTES.penilaian = el => {
             <button onclick="closeModal()" class="btn-close-notif">${icon('close', 12)}</button>
           </div>
           <div class="card-body space-y-3">
-            <div class="alert alert-info" style="font-size:12px">${icon('info', 14)} Tentukan aspek penilaian dan deskripsi A/B/C/D. Nilai hanya berupa huruf <b>A, B, C, D</b>.</div>
+            <div class="alert alert-info" style="font-size:12px">${icon('info', 14)} Tentukan aspek penilaian dan deskripsi A/B/C/D.</div>
             <div><label class="field-label">Nama Template <span style="color:#F87171">*</span></label>
               <input id="tpl-nama" class="field-input" placeholder="cth: Penilaian Latihan Rutin 2026" value="${esc(existing?.nama || '')}"></div>
             <div>
               <div class="flex justify-between items-center mb-2">
                 <label class="field-label" style="margin:0">Aspek Penilaian</label>
-                <button onclick="tambahAspekBaru()" class="btn btn-blue" style="padding:5px 10px;font-size:12px">${icon('plus', 12)} Tambah Aspek</button>
+                <button onclick="doTambahAspekBaru()" class="btn btn-blue" style="padding:5px 10px;font-size:12px">${icon('plus', 12)} Tambah Aspek</button>
               </div>
               <div id="tpl-aspek-list"></div>
             </div>
-            <div id="tpl-error" class="alert alert-error hidden"></div>
             <div class="flex gap-2 justify-end">
               <button onclick="closeModal()" class="btn btn-dark">Batal</button>
               <button onclick="doTemplate('${idEks}','${idTpl || ''}')" class="btn btn-primary">${icon('check', 14)} Simpan</button>
@@ -290,7 +285,6 @@ ROUTES.penilaian = el => {
         </div>
       </div>`;
 
-    // Isi aspek awal
     const list = $('#tpl-aspek-list');
     if (initialAspek.length) {
       initialAspek.forEach(a => {
@@ -313,9 +307,8 @@ ROUTES.penilaian = el => {
         list.appendChild(item);
       });
     } else {
-      // Default 3 aspek umum
       ['Kehadiran', 'Kedisiplinan', 'Kemampuan'].forEach(nama => {
-        window.tambahAspekBaru();
+        window.doTambahAspekBaru();
       });
       const items = list.querySelectorAll('.tpl-aspek-item');
       ['Kehadiran', 'Kedisiplinan', 'Kemampuan'].forEach((nama, i) => {
@@ -324,7 +317,6 @@ ROUTES.penilaian = el => {
     }
   }
 
-  // ============ EXPORT CSV ============
   window.exportPenilaianCSV = (idEks, idTpl) => {
     const tpl = getTemplates(idEks).find(t => t.id_template === idTpl);
     if (!tpl) return;
@@ -339,7 +331,6 @@ ROUTES.penilaian = el => {
     downloadCSV(rows, `ETAM_Penilaian_${e.nama_ekskul}_${tpl.nama}.csv`);
   };
 
-  // ============ CETAK DENGAN KOP + LOGO + TTD ============
   window.printPenilaian = (idEks, idTpl) => {
     const tpl = getTemplates(idEks).find(t => t.id_template === idTpl);
     if (!tpl) return;
@@ -352,7 +343,6 @@ ROUTES.penilaian = el => {
     const koordNama = APP_SETTINGS.koordinator_ekskul || '';
     const koordNip = APP_SETTINGS.koordinator_nip || '';
 
-    // === KOP SURAT ===
     const kop = `
       <table style="width:100%;border-collapse:collapse;margin-bottom:4px;">
         <tr>
@@ -364,7 +354,6 @@ ROUTES.penilaian = el => {
             <div style="font-size:14pt;font-weight:bold">${esc(APP_SETTINGS.dinas || 'DINAS PENDIDIKAN DAN KEBUDAYAAN')}</div>
             <div style="font-size:16pt;font-weight:bold">${esc(APP_SETTINGS.school_name || 'UPT SMP NEGERI 10 SAMARINDA')}</div>
             <div style="font-size:9pt">Alamat : ${esc(APP_SETTINGS.alamat_sekolah || 'Jl. Untung Suropati No.01, Karang Asam Ulu, Sungai Kunjang 75126')}</div>
-            <div style="font-size:9pt">e-mail : samarindasmpn10@gmail.com  ·  web.smpn10smd.net</div>
           </td>
           <td style="width:80px;text-align:center;vertical-align:middle">
             <img src="https://iili.io/nBiviCX.png" style="width:70px;height:auto" onerror="this.style.display='none'">
@@ -373,16 +362,14 @@ ROUTES.penilaian = el => {
       </table>
       <div style="border-bottom:3px double #000;margin-bottom:14px;padding-bottom:2px"></div>`;
 
-    // === INFO EKSKUL ===
     const infoEkskul = `
       <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:14px">
         <tr><td style="width:150px;padding:2px 0">Nama Ekskul</td><td style="width:10px">:</td><td>${esc(eks.nama_ekskul)}</td></tr>
         <tr><td style="padding:2px 0">Tahun Ajaran</td><td>:</td><td>${esc(TAHUN_AJARAN_AKTIF)}</td></tr>
-        <tr><td style="padding:2px 0">Template Penilaian</td><td>:</td><td>${esc(tpl.nama)}</td></tr>
+        <tr><td style="padding:2px 0">Template</td><td>:</td><td>${esc(tpl.nama)}</td></tr>
         <tr><td style="padding:2px 0">Jumlah Siswa</td><td>:</td><td>${anggota.length} orang</td></tr>
       </table>`;
 
-    // === TABEL NILAI ===
     const rows = anggota.map((ag, i) => {
       const u = userById(ag.id_user);
       if (!u) return '';
@@ -410,7 +397,6 @@ ROUTES.penilaian = el => {
         <tbody>${rows || `<tr><td colspan="${tpl.aspek.length + 3}" style="border:1px solid #000;padding:14px;text-align:center;font-size:10pt">Belum ada data</td></tr>`}</tbody>
       </table>`;
 
-    // === KETERANGAN DESKRIPSI A/B/C/D ===
     const keterangan = `
       <div style="margin-top:14px;font-size:9.5pt">
         <p style="font-weight:bold;margin-bottom:6px">Keterangan Penilaian:</p>
@@ -427,7 +413,6 @@ ROUTES.penilaian = el => {
         `).join('')}
       </div>`;
 
-    // === TANDA TANGAN ===
     const ttd = `
       <table style="width:100%;margin-top:30px;font-size:11pt;border-collapse:collapse">
         <tr>
@@ -449,13 +434,8 @@ ROUTES.penilaian = el => {
       </table>`;
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Penilaian ${esc(eks.nama_ekskul)}</title>
-      <style>
-        @page { size: A4; margin: 1.5cm; }
-        body { font-family: 'Times New Roman', Times, serif; color: #000; margin: 0; padding: 0; }
-        table { border-collapse: collapse; }
-        img { max-width: 100%; }
-      </style></head>
-      <body onload="window.print()">
+      <style>@page{size:A4;margin:1.5cm}body{font-family:'Times New Roman',serif;color:#000;margin:0}table{border-collapse:collapse}img{max-width:100%}</style>
+      </head><body onload="window.print()">
         ${kop}
         <div style="text-align:center;font-size:13pt;font-weight:bold;margin:8px 0 4px">LAPORAN PENILAIAN EKSTRAKURIKULER</div>
         <div style="text-align:center;font-size:11pt;margin-bottom:14px">${esc(tpl.nama)}</div>
@@ -471,154 +451,7 @@ ROUTES.penilaian = el => {
   };
 };
 
-/* ============ ROUTE LUPA PASSWORD (ADMIN) ============ */
-ROUTES.lupapwd = el => {
-  if (CURRENT_USER.role_sistem !== 'admin') {
-    return el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Hanya Admin.</div></div>`;
-  }
-
-  const pendingReq = LUPA_PASSWORD.filter(x => x.status === 'pending').reverse();
-  const riwayat = LUPA_PASSWORD.filter(x => x.status === 'selesai').reverse().slice(0, 20);
-
-  el.innerHTML = `
-    <div class="card mb-4">
-      <div class="card-header"><h2 class="font-display text-base">${icon('lupapwd', 18)} Reset Password User</h2></div>
-      <div class="card-body">
-        <p class="text-sm mb-3" style="color:var(--text-muted)">Cari user (murid/guru/pelatih) lalu reset passwordnya. Password baru akan ditampilkan & bisa dikirim via WhatsApp.</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="field-label">Cari User (Nama / Email / NIS / NIP)</label>
-            <input id="lp-cari" class="field-input" placeholder="Ketik untuk mencari..." oninput="renderHasilCariUser()">
-          </div>
-          <div>
-            <label class="field-label">Filter Role</label>
-            <select id="lp-role" class="field-input" onchange="renderHasilCariUser()">
-              <option value="">Semua Role</option>
-              <option value="murid">Murid</option>
-              <option value="guru">Guru</option>
-              <option value="pelatih">Pelatih</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-        </div>
-        <div id="lp-hasil" class="mt-3"></div>
-      </div>
-    </div>
-
-    ${pendingReq.length ? `
-      <div class="card mb-4" style="border-left:4px solid #FBBF24">
-        <div class="card-header"><h3 class="font-display text-base">${icon('alert', 16)} Permintaan dari Login (${pendingReq.length})</h3></div>
-        <div class="overflow-x-auto custom-scrollbar">
-          <table><thead><tr><th>Waktu</th><th>Email/NIS</th><th style="text-align:center">Aksi</th></tr></thead>
-          <tbody>${pendingReq.map(l => `<tr>
-            <td>${fmtDateTime(l.created_at)}</td>
-            <td class="font-semibold">${esc(l.email_atau_nis)}</td>
-            <td class="text-center"><button onclick="resetPwdRequest('${l.id_permintaan}')" class="btn btn-primary" style="padding:4px 10px;font-size:11.5px">Reset</button></td>
-          </tr>`).join('')}</tbody></table>
-        </div>
-      </div>
-    ` : ''}
-
-    ${riwayat.length ? `
-      <div class="card">
-        <div class="card-header"><h3 class="font-display text-base">${icon('riwayat', 16)} Riwayat Reset (${riwayat.length})</h3></div>
-        <div class="overflow-x-auto custom-scrollbar">
-          <table><thead><tr><th>Waktu</th><th>User</th><th>Oleh</th></tr></thead>
-          <tbody>${riwayat.map(l => {
-            const oleh = userById(l.diselesaikan_oleh);
-            return `<tr><td>${fmtDateTime(l.created_at)}</td><td>${esc(l.email_atau_nis)}</td><td>${esc(oleh ? oleh.nama_lengkap : '-')}</td></tr>`;
-          }).join('')}</tbody></table>
-        </div>
-      </div>
-    ` : ''}`;
-
-  window.renderHasilCariUser = () => {
-    const q = ($('#lp-cari')?.value || '').toLowerCase().trim();
-    const role = $('#lp-role')?.value || '';
-    let list = USERS.filter(u => !u._arsip);
-    if (role) list = list.filter(u => u.role_sistem === role);
-    if (q) list = list.filter(u =>
-      (u.nama_lengkap || '').toLowerCase().includes(q) ||
-      (u.email || '').toLowerCase().includes(q) ||
-      (u.nis || '').includes(q) ||
-      (u.nip || '').includes(q)
-    );
-    list = list.slice(0, 30);
-    const wrap = $('#lp-hasil');
-    if (!wrap) return;
-    if (!q) { wrap.innerHTML = '<p class="text-xs text-center py-3" style="color:var(--text-dim)">Ketik nama/email untuk mencari user.</p>'; return; }
-    if (!list.length) { wrap.innerHTML = '<p class="text-sm text-center py-3" style="color:var(--text-dim)">Tidak ditemukan.</p>'; return; }
-    wrap.innerHTML = `<div class="space-y-1">${list.map(u => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px">
-        ${renderAvatar(u, 'sm')}
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-sm">${esc(u.nama_lengkap)}</p>
-          <p class="text-xs" style="color:var(--text-dim)">${esc(u.email || '-')} · ${esc(u.role_sistem)}${u.nis ? ' · NIS ' + esc(u.nis) : ''}${u.nip ? ' · NIP ' + esc(u.nip) : ''}</p>
-        </div>
-        <button onclick="resetPwdUser('${u.id_user}')" class="btn btn-warning" style="padding:5px 10px;font-size:11.5px">${icon('lupapwd', 12)} Reset</button>
-      </div>
-    `).join('')}</div>`;
-  };
-
-  window.resetPwdUser = async idUser => {
-    const u = userById(idUser);
-    if (!u) return;
-    if (!confirm(`Reset password ${u.nama_lengkap}?`)) return;
-    const newPwd = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
-    u.password_hash = await hashPwd(newPwd);
-    u.password = undefined;
-    persist();
-    logAction('reset_password_admin', { idUser, email: u.email });
-    tampilkanPasswordBaru(u, newPwd);
-  };
-
-  window.resetPwdRequest = async id => {
-    const lp = LUPA_PASSWORD.find(x => x.id_permintaan === id);
-    if (!lp) return;
-    const u = USERS.find(x =>
-      (x.email && x.email.toLowerCase() === lp.email_atau_nis.toLowerCase()) ||
-      (x.nis && x.nis === lp.email_atau_nis) ||
-      (x.nip && x.nip === lp.email_atau_nis)
-    );
-    if (!u) return showToast('User tidak ditemukan', 'error');
-    const newPwd = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
-    u.password_hash = await hashPwd(newPwd);
-    u.password = undefined;
-    lp.status = 'selesai';
-    lp.diselesaikan_oleh = CURRENT_USER.id_user;
-    persist();
-    logAction('reset_password_request', { email: u.email });
-    tampilkanPasswordBaru(u, newPwd);
-    showTab('lupapwd');
-  };
-
-  function tampilkanPasswordBaru(u, pwd) {
-    const pesan = `Assalamualaikum ${u.nama_lengkap},\n\nPassword ETAM Anda telah direset oleh Admin:\n\nEmail: ${u.email}\nPassword Baru: ${pwd}\n\nSegera login dan ganti password di menu "Ganti Password".\n\nTerima kasih 🙏`;
-    $('#modal-root').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
-        <div class="card w-full max-w-md animate-fade-in">
-          <div class="card-header"><h3 class="font-display text-base">${icon('check', 18)} Password Direset</h3><button onclick="closeModal()" class="btn-close-notif">${icon('close', 12)}</button></div>
-          <div class="card-body space-y-3">
-            <div class="alert alert-info" style="font-size:12px">${icon('info', 14)} Password ini hanya muncul sekali. Copy dan kirimkan ke user.</div>
-            <div style="padding:12px;background:var(--surface-2);border-radius:12px">
-              <div class="akun-row"><span class="akun-label">Nama</span><span class="akun-value">${esc(u.nama_lengkap)}</span></div>
-              <div class="akun-row"><span class="akun-label">Email</span><span class="akun-value akun-copy" onclick="copyTeks('${esc(u.email)}')">${esc(u.email)} ${icon('link', 12)}</span></div>
-              <div class="akun-row"><span class="akun-label">Password</span><span class="akun-value akun-copy" onclick="copyTeks('${esc(pwd)}')" style="color:#FBBF24;font-weight:800">${esc(pwd)} ${icon('link', 12)}</span></div>
-            </div>
-            ${u.no_wa ? `<button onclick="openWA('${esc(u.no_wa)}', \`${pesan.replace(/`/g,'\\`')}\`)" class="btn btn-success w-full">${icon('wa', 16)} Kirim via WhatsApp</button>` : ''}
-            <button onclick="closeModal()" class="btn btn-primary w-full">Selesai</button>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  window.copyTeks = t => {
-    try { navigator.clipboard.writeText(t).then(() => showToast('Disalin')); }
-    catch(e) { showToast('Gagal copy', 'error'); }
-  };
-};
-
-/* ============ HELPER: WARNA SELECT NILAI ============ */
+/* Helper warna dropdown nilai */
 function warnaNilaiSelect(v) {
   if (v === 'A') return 'color:#10B981;background:rgba(16,185,129,.1);border-color:#10B981';
   if (v === 'B') return 'color:#3B82F6;background:rgba(59,130,246,.1);border-color:#3B82F6';
