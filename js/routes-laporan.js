@@ -46,6 +46,26 @@ function extractHariJam(e) {
   };
 }
 
+/* ============ HELPER: TTD NIP ============ */
+
+/**
+ * Render baris NIP. Kalau NIP kosong → TIDAK tampilkan baris "NIP. ..."
+ */
+function renderNipLine(nip) {
+  const n = (nip || '').trim();
+  if (!n) return '';
+  return `<div style="font-size:11pt;">NIP. ${esc(n)}</div>`;
+}
+
+/**
+ * Render nama dengan atau tanpa underline + fallback
+ */
+function renderNamaTtd(nama) {
+  const n = (nama || '').trim();
+  if (!n) return `<div style="font-weight:bold;text-decoration:underline;">..............................</div>`;
+  return `<div style="font-weight:bold;text-decoration:underline;">${esc(n)}</div>`;
+}
+
 /* ============ BUILDER: KOP SURAT ============ */
 function buildKop() {
   return `
@@ -55,9 +75,9 @@ function buildKop() {
           <img src="${LOGO_PEMKOT}" alt="Pemkot" style="width:70px;height:auto;">
         </td>
         <td style="text-align:center;vertical-align:middle;line-height:1.3;">
-          <div style="font-size:14pt;font-weight:bold;letter-spacing:.02em;">PEMERINTAH KOTA SAMARINDA</div>
-          <div style="font-size:14pt;font-weight:bold;letter-spacing:.02em;">DINAS PENDIDIKAN DAN KEBUDAYAAN</div>
-          <div style="font-size:16pt;font-weight:bold;letter-spacing:.02em;">UPT SMP NEGERI 10</div>
+          <div style="font-size:14pt;font-weight:bold;letter-spacing:.02em;">${esc(APP_SETTINGS.kota || 'PEMERINTAH KOTA SAMARINDA')}</div>
+          <div style="font-size:14pt;font-weight:bold;letter-spacing:.02em;">${esc(APP_SETTINGS.dinas || 'DINAS PENDIDIKAN DAN KEBUDAYAAN')}</div>
+          <div style="font-size:16pt;font-weight:bold;letter-spacing:.02em;">${esc(APP_SETTINGS.school_name || 'UPT SMP NEGERI 10')}</div>
           <div style="font-size:9pt;">Alamat : Jl. Untung Suropati No.01, Karang Asam Ulu, Sungai Kunjang 75126</div>
           <div style="font-size:9pt;">e-mail : samarindasmpn10@gmail.com  ·  web.smpn10smd.net</div>
         </td>
@@ -113,8 +133,16 @@ function buildInfoEkskul(e, pembinaNama, tahun) {
 }
 
 /* ============ BUILDER: TANDA TANGAN ============ */
-function buildTtdPage1Page2(pembinaNama) {
-  const koord = getKoordinatorInfo();
+
+/**
+ * TTD untuk Halaman 1 & 2
+ * - Kiri: Kepala Sekolah (dari APP_SETTINGS.kepala_upt + kepala_nip)
+ * - Kanan: Pembina Ekskul (dari pembinaNama + pembinaNip)
+ * NIP hanya muncul kalau ada isinya
+ */
+function buildTtdPage1Page2(pembinaNama, pembinaNip) {
+  const kepalaNama = APP_SETTINGS.kepala_upt || '';
+  const kepalaNip = APP_SETTINGS.kepala_nip || '';
   return `
     <table style="width:100%;margin-top:30px;font-size:11pt;border-collapse:collapse;">
       <tr>
@@ -122,23 +150,32 @@ function buildTtdPage1Page2(pembinaNama) {
           <div>Mengetahui,</div>
           <div>Kepala UPT SMP Negeri 10 Samarinda</div>
           <div style="height:70px;"></div>
-          <div style="font-weight:bold;text-decoration:underline;">${esc(APP_SETTINGS.kepala_upt || '..........................')}</div>
-          <div>NIP. ....................................</div>
+          ${renderNamaTtd(kepalaNama)}
+          ${renderNipLine(kepalaNip)}
         </td>
         <td style="width:50%;vertical-align:top;text-align:left;">
           <div>Samarinda, ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div>
           <div>Pembina Ekskul,</div>
           <div style="height:70px;"></div>
-          <div style="font-weight:bold;text-decoration:underline;">${esc(pembinaNama || '..........................')}</div>
-          <div>NIP. ....................................</div>
+          ${renderNamaTtd(pembinaNama)}
+          ${renderNipLine(pembinaNip)}
         </td>
       </tr>
     </table>
   `;
 }
 
+/**
+ * TTD untuk Halaman 3
+ * - Kiri: Kepala Sekolah
+ * - Kanan: Koordinator Ekskul
+ * NIP hanya muncul kalau ada isinya
+ */
 function buildTtdPage3() {
-  const koord = getKoordinatorInfo();
+  const kepalaNama = APP_SETTINGS.kepala_upt || '';
+  const kepalaNip = APP_SETTINGS.kepala_nip || '';
+  const koordNama = APP_SETTINGS.koordinator_ekskul || '';
+  const koordNip = APP_SETTINGS.koordinator_nip || '';
   return `
     <table style="width:100%;margin-top:40px;font-size:11pt;border-collapse:collapse;">
       <tr>
@@ -146,15 +183,15 @@ function buildTtdPage3() {
           <div>Mengetahui,</div>
           <div>Kepala UPT SMP Negeri 10 Samarinda</div>
           <div style="height:70px;"></div>
-          <div style="font-weight:bold;text-decoration:underline;">${esc(APP_SETTINGS.kepala_upt || '..........................')}</div>
-          <div>NIP. ....................................</div>
+          ${renderNamaTtd(kepalaNama)}
+          ${renderNipLine(kepalaNip)}
         </td>
         <td style="width:50%;vertical-align:top;text-align:left;">
           <div>Samarinda, ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div>
           <div>Koordinator Ekskul,</div>
           <div style="height:70px;"></div>
-          <div style="font-weight:bold;text-decoration:underline;">${esc(koord.nama || APP_SETTINGS.koordinator_ekskul || '..........................')}</div>
-          <div>NIP. ${esc(koord.nip || '....................................')}</div>
+          ${renderNamaTtd(koordNama)}
+          ${renderNipLine(koordNip)}
         </td>
       </tr>
     </table>
@@ -171,7 +208,9 @@ function buildLaporan() {
   if (!e) return '<p>Pilih ekskul terlebih dahulu</p>';
 
   const pembinaAktif = pembinaOf(idEks);
-  const pembinaNama = pembinaAktif[0] ? pembinaAktif[0].nama_lengkap : '....................................................';
+  const pembinaUtama = pembinaAktif[0] || null;
+  const pembinaNama = pembinaUtama ? pembinaUtama.nama_lengkap : '';
+  const pembinaNip = pembinaUtama ? (pembinaUtama.nip || '') : '';
 
   const murid = muridOfEkskul(idEks);
   const bulanIdx = BULAN.indexOf(bulan);
@@ -208,7 +247,7 @@ function buildLaporan() {
       ${buildKop()}
       <div style="text-align:center;font-size:13pt;font-weight:bold;margin:8px 0 4px;">ABSEN SISWA / SISWI EKSTRAKULIKULER</div>
       <div style="text-align:center;font-size:12pt;font-weight:bold;margin-bottom:14px;">PERIODE BULAN : ${esc(bulan).toUpperCase()} ${new Date().getFullYear()}</div>
-      ${buildInfoEkskul(e, pembinaNama, tahun)}
+      ${buildInfoEkskul(e, pembinaNama || '................', tahun)}
       <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
@@ -224,7 +263,7 @@ function buildLaporan() {
       <div style="margin-top:10px;font-size:9pt;font-style:italic;">
         Keterangan: H = Hadir, I = Izin, S = Sakit, A = Alpa, - = Tidak ada pertemuan
       </div>
-      ${buildTtdPage1Page2(pembinaNama)}
+      ${buildTtdPage1Page2(pembinaNama, pembinaNip)}
     </div>
   `;
 
@@ -252,7 +291,7 @@ function buildLaporan() {
         </thead>
         <tbody>${rows2}</tbody>
       </table>
-      ${buildTtdPage1Page2(pembinaNama)}
+      ${buildTtdPage1Page2(pembinaNama, pembinaNip)}
     </div>
   `;
 
@@ -260,7 +299,6 @@ function buildLaporan() {
   const mtgsP = [1, 2, 3, 4, 5];
   const headNumsP = mtgsP.map(m => `<th style="border:1px solid #000;padding:4px;background:#e8e8e8;font-size:9pt;width:50px;">${m}</th>`).join('');
 
-  // Pembina + Pelatih
   const semuaPembina = pembinaAktif;
   const rows3 = semuaPembina.length ? semuaPembina.map((p, i) => {
     const cells = mtgsP.map(mt => {
@@ -280,7 +318,7 @@ function buildLaporan() {
       ${buildKop()}
       <div style="text-align:center;font-size:13pt;font-weight:bold;margin:8px 0 4px;">ABSEN PEMBINA / PELATIH EKSTRAKULIKULER</div>
       <div style="text-align:center;font-size:12pt;font-weight:bold;margin-bottom:14px;">PERIODE BULAN : ${esc(bulan).toUpperCase()} ${new Date().getFullYear()}</div>
-      ${buildInfoEkskul(e, pembinaNama, tahun)}
+      ${buildInfoEkskul(e, pembinaNama || '................', tahun)}
       <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
