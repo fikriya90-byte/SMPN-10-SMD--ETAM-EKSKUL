@@ -5,12 +5,7 @@ window.exportStrukturPrint = (idEks) => {
   if (!e) return;
   const pembinaList = pembinaOf(idEks);
   const anggota = anggotaAktifOf(idEks);
-  const ketua = anggota.find(a => a.jabatan === 'ketua');
-  const wakil = anggota.find(a => a.jabatan === 'wakil_ketua');
-  const sekre = anggota.find(a => a.jabatan === 'sekretaris');
-  const bendahara = anggota.find(a => a.jabatan === 'bendahara');
-  const dokum = anggota.find(a => a.jabatan === 'dokumentasi');
-  const biasa = anggota.filter(a => a.jabatan === 'anggota');
+  const struktur = getStrukturTahun(idEks, TAHUN_AJARAN_AKTIF);
 
   const box = (u, jabatan) => {
     if (!u) return '';
@@ -38,25 +33,21 @@ window.exportStrukturPrint = (idEks) => {
       th{background:#f0f0f0}
     </style></head><body onload="window.print()">
     <h1>STRUKTUR PENGURUS ${esc(e.nama_ekskul).toUpperCase()}</h1>
-    <p class="sub">${esc(APP_SETTINGS.school_name)} - Periode ${esc(e.tahun_ajaran || '-')}</p>
+    <p class="sub">${esc(APP_SETTINGS.school_name)} - Tahun ${esc(TAHUN_AJARAN_AKTIF)}</p>
     <div class="bagan">
       ${pembinaList.length ? `<div class="row">${pembinaList.map(p => `<div class="box">${box(p, 'pembina')}</div>`).join('')}</div><div style="width:2px;height:16px;background:#999"></div>` : ''}
-      ${ketua ? `<div class="row"><div class="box">${box(userById(ketua.id_user), 'ketua')}</div></div><div style="width:2px;height:16px;background:#999"></div>` : ''}
+      ${struktur.ketua ? `<div class="row"><div class="box">${box(userById(struktur.ketua), 'ketua')}</div></div><div style="width:2px;height:16px;background:#999"></div>` : ''}
       <div class="row">
-        ${wakil ? `<div class="box">${box(userById(wakil.id_user), 'wakil_ketua')}</div>` : ''}
-        ${sekre ? `<div class="box">${box(userById(sekre.id_user), 'sekretaris')}</div>` : ''}
-        ${bendahara ? `<div class="box">${box(userById(bendahara.id_user), 'bendahara')}</div>` : ''}
+        ${struktur.wakil_ketua ? `<div class="box">${box(userById(struktur.wakil_ketua), 'wakil_ketua')}</div>` : ''}
+        ${struktur.sekretaris ? `<div class="box">${box(userById(struktur.sekretaris), 'sekretaris')}</div>` : ''}
+        ${struktur.bendahara ? `<div class="box">${box(userById(struktur.bendahara), 'bendahara')}</div>` : ''}
       </div>
-      ${dokum ? `<div style="width:2px;height:16px;background:#999"></div><div class="row"><div class="box">${box(userById(dokum.id_user), 'dokumentasi')}</div></div>` : ''}
+      ${struktur.dokumentasi ? `<div style="width:2px;height:16px;background:#999"></div><div class="row"><div class="box">${box(userById(struktur.dokumentasi), 'dokumentasi')}</div></div>` : ''}
     </div>
-    <h2 style="font-size:12pt;margin-top:24px">Daftar Anggota (${biasa.length} orang)</h2>
+    <h2 style="font-size:12pt;margin-top:24px">Daftar Anggota (${anggota.length} orang)</h2>
     <table>
       <thead><tr><th style="width:40px">No</th><th>Nama</th><th style="width:80px">Kelas</th><th style="width:100px">NIS</th></tr></thead>
-      <tbody>${biasa.map((a, i) => {
-        const u = userById(a.id_user);
-        if (!u) return '';
-        return `<tr><td>${i+1}</td><td>${esc(u.nama_lengkap)}</td><td>${esc(u.kelas || '-')}</td><td>${esc(u.nis || '-')}</td></tr>`;
-      }).join('')}</tbody>
+      <tbody>${anggota.map((a, i) => { const u = userById(a.id_user); if (!u) return ''; return `<tr><td>${i+1}</td><td>${esc(u.nama_lengkap)}</td><td>${esc(u.kelas || '-')}</td><td>${esc(u.nis || '-')}</td></tr>`; }).join('')}</tbody>
     </table>
     <div style="margin-top:40px;text-align:right">
       <p>${esc(APP_SETTINGS.kota || 'Samarinda')}, ${new Date().toLocaleDateString('id-ID')}</p>
@@ -87,9 +78,8 @@ ROUTES.statistik = el => {
     const hadir = totalPresensi.filter(p => p.status === 'hadir').length;
     const totalExpected = anggota.length * jurnalClosed.length;
     const pct = totalExpected ? Math.round((hadir / totalExpected) * 100) : 0;
-    const kasTarget = totalExpected;
     const kasSudah = KAS_BAYAR.filter(b => b.id_ekskul === id).length;
-    const kasPct = kasTarget ? Math.round((kasSudah / kasTarget) * 100) : 0;
+    const kasPct = totalExpected ? Math.round((kasSudah / totalExpected) * 100) : 0;
     return { e, anggota: anggota.length, jurnal: jurnalClosed.length, pct, kasPct };
   }).filter(Boolean);
 
@@ -103,9 +93,7 @@ ROUTES.statistik = el => {
               <p class="font-semibold text-sm">${esc(s.e.nama_ekskul)}</p>
               <span class="chip ${s.pct >= 75 ? 'chip-ok' : s.pct >= 50 ? 'chip-warn' : 'chip-no'}">${s.pct}%</span>
             </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width:${s.pct}%;background:${s.pct >= 75 ? 'linear-gradient(90deg,#10B981,#059669)' : s.pct >= 50 ? 'linear-gradient(90deg,#FBBF24,#F59E0B)' : 'linear-gradient(90deg,#EF4444,#DC2626)'}"></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${s.pct}%;background:${s.pct >= 75 ? 'linear-gradient(90deg,#10B981,#059669)' : s.pct >= 50 ? 'linear-gradient(90deg,#FBBF24,#F59E0B)' : 'linear-gradient(90deg,#EF4444,#DC2626)'}"></div></div>
             <p class="text-xs mt-1" style="color:var(--text-dim)">${s.anggota} anggota - ${s.jurnal} pertemuan</p>
           </div>
         `).join('') : '<p class="text-sm text-center py-6" style="color:var(--text-dim)">Belum ada data.</p>'}
@@ -120,9 +108,7 @@ ROUTES.statistik = el => {
               <p class="font-semibold text-sm">${esc(s.e.nama_ekskul)}</p>
               <span class="chip ${s.kasPct >= 75 ? 'chip-ok' : s.kasPct >= 50 ? 'chip-warn' : 'chip-no'}">${s.kasPct}%</span>
             </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width:${s.kasPct}%;background:linear-gradient(90deg,#8B5CF6,#6D28D9)"></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${s.kasPct}%;background:linear-gradient(90deg,#8B5CF6,#6D28D9)"></div></div>
           </div>
         `).join('') : '<p class="text-sm text-center py-6" style="color:var(--text-dim)">Belum ada data.</p>'}
       </div>
