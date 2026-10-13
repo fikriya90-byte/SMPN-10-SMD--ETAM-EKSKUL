@@ -4,6 +4,7 @@ const NAV = {
   admin: [
     { key:'dashboard', label:'Dashboard', icon:'dashboard', group:'Utama' },
     { key:'verifikasi', label:'Verifikasi', icon:'verifikasi', group:'Utama' },
+    { key:'pembina', label:'Pembina & Pelatih', icon:'users', group:'Manajemen' },
     { key:'ekskul', label:'Manajemen Ekskul', icon:'ekskul', group:'Manajemen' },
     { key:'struktur', label:'Struktur', icon:'struktur', group:'Manajemen' },
     { key:'pengumuman', label:'Pengumuman', icon:'pengumuman', group:'Manajemen' },
@@ -96,43 +97,25 @@ const NAV = {
 const ROUTES = {};
 
 /* ============ STATE PERSISTENCE ============ */
-
-function saveCurrentTab(key) {
-  try { localStorage.setItem('etam_current_tab', key || ''); } catch(e) {}
-}
-function getSavedTab() {
-  try { return localStorage.getItem('etam_current_tab') || ''; } catch(e) { return ''; }
-}
-function clearSavedTab() {
-  try { localStorage.removeItem('etam_current_tab'); } catch(e) {}
-}
-
-function saveEkskulCtx(idEks) {
-  try { localStorage.setItem('etam_ekskul_ctx', idEks || ''); } catch(e) {}
-}
-function getSavedEkskulCtx() {
-  try { return localStorage.getItem('etam_ekskul_ctx') || ''; } catch(e) { return ''; }
-}
-function clearEkskulCtx() {
-  try { localStorage.removeItem('etam_ekskul_ctx'); } catch(e) {}
-}
+function saveCurrentTab(key) { try { localStorage.setItem('etam_current_tab', key || ''); } catch(e) {} }
+function getSavedTab() { try { return localStorage.getItem('etam_current_tab') || ''; } catch(e) { return ''; } }
+function clearSavedTab() { try { localStorage.removeItem('etam_current_tab'); } catch(e) {} }
+function saveEkskulCtx(idEks) { try { localStorage.setItem('etam_ekskul_ctx', idEks || ''); } catch(e) {} }
+function getSavedEkskulCtx() { try { return localStorage.getItem('etam_ekskul_ctx') || ''; } catch(e) { return ''; } }
+function clearEkskulCtx() { try { localStorage.removeItem('etam_ekskul_ctx'); } catch(e) {} }
 
 /* ============ EKSKUL ACCESS ============ */
-
-/** Daftar ekskul yang bisa diakses user (untuk switcher) */
 function getAccessibleEkskulIds() {
   if (!CURRENT_USER) return [];
   const r = CURRENT_USER.role_sistem;
   if (r === 'admin') return EKSKUL.map(e => e.id_ekskul);
   if (r === 'guru' || r === 'pelatih') return userEkskulIds(CURRENT_USER.id_user);
   if (r === 'pengurus' || r === 'murid') {
-    return ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user && a.status_anggota === 'aktif')
-      .map(a => a.id_ekskul);
+    return ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user && a.status_anggota === 'aktif').map(a => a.id_ekskul);
   }
   return [];
 }
 
-/** Info role user di ekskul tertentu */
 function getRoleInEkskul(idEks) {
   if (!CURRENT_USER || !idEks) return null;
   const r = CURRENT_USER.role_sistem;
@@ -148,7 +131,6 @@ function getRoleInEkskul(idEks) {
   return null;
 }
 
-/** Validasi CURRENT_EKSKUL_CTX */
 function ensureEkskulCtx() {
   const accessible = getAccessibleEkskulIds();
   if (!accessible.length) { CURRENT_EKSKUL_CTX = null; return null; }
@@ -160,14 +142,12 @@ function ensureEkskulCtx() {
   return CURRENT_EKSKUL_CTX;
 }
 
-/** Ganti ekskul context */
 function switchEkskulCtx(idEks) {
   if (!idEks) return;
   const accessible = getAccessibleEkskulIds();
   if (!accessible.includes(idEks)) return showToast('Anda tidak punya akses ke ekskul ini', 'error');
   CURRENT_EKSKUL_CTX = idEks;
   saveEkskulCtx(idEks);
-  // Update tampilan
   renderNav();
   renderHeaderContext();
   const cur = getSavedTab() || 'dashboard';
@@ -176,7 +156,6 @@ function switchEkskulCtx(idEks) {
 }
 
 /* ============ RENDER SIDEBAR ============ */
-
 function renderNav() {
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   const navEl = document.getElementById('nav-tabs');
@@ -189,10 +168,7 @@ function renderNav() {
     groups[g].push(t);
   });
 
-  const roleLabel = {
-    admin: 'Admin', guru: 'Guru', pelatih: 'Pelatih',
-    pengurus: 'Pengurus', murid: 'Siswa'
-  }[CURRENT_USER.role_sistem] || 'User';
+  const roleLabel = { admin: 'Admin', guru: 'Guru', pelatih: 'Pelatih', pengurus: 'Pengurus', murid: 'Siswa' }[CURRENT_USER.role_sistem] || 'User';
 
   navEl.innerHTML = `
     <div class="sidebar-header">
@@ -247,8 +223,7 @@ function renderNav() {
 
 function renderEkskulSwitcherSidebar() {
   const accessible = getAccessibleEkskulIds();
-  if (accessible.length <= 1) return ''; // Kalau cuma 1 ekskul, tidak perlu switcher
-
+  if (accessible.length <= 1) return '';
   const eks = accessible.map(id => ekskulById(id)).filter(Boolean);
   return `
     <div class="sidebar-ekskul-switcher">
@@ -286,7 +261,6 @@ document.addEventListener('click', ev => {
 });
 
 /* ============ HEADER CONTEXT ============ */
-
 function renderHeaderContext() {
   const ctxEl = document.getElementById('context-block');
   if (!ctxEl) return;
@@ -311,7 +285,6 @@ function renderHeaderContext() {
     return;
   }
 
-  // Kalau >1 ekskul, tampilkan dropdown
   const curEks = ekskulById(CURRENT_EKSKUL_CTX);
   const curInfo = getRoleInEkskul(CURRENT_EKSKUL_CTX);
   const eks = accessible.map(id => ekskulById(id)).filter(Boolean);
@@ -353,17 +326,13 @@ document.addEventListener('click', ev => {
 });
 
 /* ============ SHOW TAB ============ */
-
 function showTab(key) {
   if (!key || !ROUTES[key]) {
     const el = document.getElementById('main-content');
     if (el) el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:var(--text-dim)">Halaman "${esc(key)}" belum tersedia.</div></div>`;
     return;
   }
-
-  // Pastikan ctx valid sebelum render
   ensureEkskulCtx();
-
   document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.tab === key));
   const el = document.getElementById('main-content');
   el.innerHTML = '';
@@ -375,7 +344,6 @@ function showTab(key) {
     console.error(e);
     el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Error: ${esc(e.message)}</div></div>`;
   }
-
   saveCurrentTab(key);
   renderHeaderContext();
   if (window.innerWidth < 1024) closeSidebarMobile();
@@ -383,7 +351,6 @@ function showTab(key) {
 }
 
 /* ============ SIDEBAR MOBILE ============ */
-
 function openSidebarMobile() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebar-overlay').classList.add('open');
