@@ -1,5 +1,5 @@
 /* =====================================================================
-   auth.js — Login (Firebase Auth), Register (Siswa), Lupa Password
+   auth.js — Login via Firebase Auth (robust)
    ===================================================================== */
 
 /* ============ ROLE SELECTOR ============ */
@@ -16,7 +16,6 @@ function selectLoginRole(role) {
   if (err) err.classList.add('hidden');
 }
 
-/* ============ OPEN REGISTER (auto pull Firestore) ============ */
 async function openRegister() {
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('view-register').classList.remove('hidden');
@@ -26,7 +25,7 @@ async function openRegister() {
   if (list) list.innerHTML = '<p class="text-xs text-center py-3" style="color:var(--text-dim)">Memuat ekskul...</p>';
 
   if (typeof fsPullAll === 'function') {
-    try { await fsPullAll(); } catch(e) { console.warn('[Register] fsPullAll gagal:', e); }
+    try { await fsPullAll(); } catch(e) { console.warn('[Register] fsPullAll:', e); }
   }
   if (!EKSKUL.length && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
     try {
@@ -35,7 +34,7 @@ async function openRegister() {
         EKSKUL = snap.docs.map(d => d.data());
         DB.set('ekskul', EKSKUL);
       }
-    } catch(e) { console.warn('[Register] Fallback pull gagal:', e); }
+    } catch(e) {}
   }
 
   if (list) {
@@ -77,7 +76,7 @@ function closeForgot() {
 }
 
 /* ================================================================
-   LOGIN — WAJIB VIA FIREBASE AUTH
+   LOGIN
    ================================================================ */
 async function handleLogin(ev) {
   ev.preventDefault();
@@ -91,23 +90,16 @@ async function handleLogin(ev) {
   if (!pwd) return fail('Isi password');
 
   const inputLow = input.toLowerCase();
-
-  // Cari user di data lokal (untuk tau email dari NIS/NIP)
   let userRec = USERS.find(x =>
     (x.email && x.email.toLowerCase() === inputLow) ||
     (x.nis && x.nis === input) ||
     (x.nip && x.nip === input)
   );
 
-  // Tentukan email untuk login Firebase
   let loginEmail = '';
-  if (userRec && userRec.email) {
-    loginEmail = userRec.email;
-  } else if (input.includes('@')) {
-    loginEmail = input;
-  } else {
-    return fail('Email/NIS/NIP tidak terdaftar');
-  }
+  if (userRec && userRec.email) loginEmail = userRec.email;
+  else if (input.includes('@')) loginEmail = input;
+  else return fail('Email/NIS/NIP tidak terdaftar');
 
   showToast('Memverifikasi...');
   const result = await fbLogin(loginEmail, pwd);
@@ -115,7 +107,6 @@ async function handleLogin(ev) {
 
   const firebaseUid = result.user.uid;
 
-  // Kalau user belum ada di data lokal, buat baru
   if (!userRec) {
     userRec = {
       id_user: 'u_' + firebaseUid,
@@ -139,7 +130,6 @@ async function handleLogin(ev) {
     persist();
   }
 
-  // Cek role
   const roleMap = {
     murid: ['murid', 'pengurus'],
     guru: ['guru', 'pelatih'],
@@ -151,7 +141,6 @@ async function handleLogin(ev) {
     return fail('Akun ini bukan akun ' + labels[loginRole] + '. Pilih tab yang sesuai.');
   }
 
-  // Cek verifikasi siswa
   if (userRec.role_sistem === 'murid' || userRec.role_sistem === 'pengurus') {
     const anggotaAktif = ANGGOTA.filter(a =>
       a.id_user === userRec.id_user && a.status_anggota === 'aktif'
@@ -169,7 +158,6 @@ async function handleLogin(ev) {
     }
   }
 
-  // Cek verifikasi guru/pelatih
   if (userRec.role_sistem === 'guru' || userRec.role_sistem === 'pelatih') {
     const pembinaAktif = PEMBINA.filter(p =>
       p.id_user === userRec.id_user && p.status_akun === 'aktif'
@@ -185,7 +173,6 @@ async function handleLogin(ev) {
     return fail('Akun dinonaktifkan. Hubungi Admin.');
   }
 
-  // Set current user
   CURRENT_USER = Object.assign({}, userRec);
   CURRENT_USER.last_login = new Date().toISOString();
   CURRENT_USER._firebase_uid = firebaseUid;
@@ -196,7 +183,6 @@ async function handleLogin(ev) {
     persist();
   }
 
-  // Cek jabatan pengurus
   if (userRec.role_sistem === 'murid') {
     const a = ANGGOTA.find(x =>
       x.id_user === userRec.id_user &&
@@ -221,7 +207,7 @@ async function handleLogin(ev) {
 }
 
 /* ================================================================
-   REGISTER — HANYA SISWA (Firebase Auth + Firestore)
+   REGISTER
    ================================================================ */
 async function handleRegister(ev) {
   ev.preventDefault();
@@ -256,17 +242,11 @@ async function handleRegister(ev) {
 
   const newId = uid('u');
   const newUser = {
-    id_user: newId,
-    nama_lengkap: name,
-    email,
+    id_user: newId, nama_lengkap: name, email,
     nis, nisn, nip: '',
     password_hash: hashPwd(pwd),
-    no_wa: wa,
-    role_sistem: 'murid',
-    kelas,
-    foto_profil_url: '',
-    active: true,
-    last_login: '',
+    no_wa: wa, role_sistem: 'murid', kelas,
+    foto_profil_url: '', active: true, last_login: '',
     firebase_uid: firebaseUid,
     created_at: new Date().toISOString()
   };
@@ -274,20 +254,15 @@ async function handleRegister(ev) {
 
   ekskulDipilih.forEach(idEks => {
     ANGGOTA.push({
-      id_anggota: uid('a'),
-      id_user: newId,
-      id_ekskul: idEks,
-      jabatan: 'anggota',
-      status_anggota: 'pending',
-      verified_by: '',
-      verified_at: '',
+      id_anggota: uid('a'), id_user: newId, id_ekskul: idEks,
+      jabatan: 'anggota', status_anggota: 'pending',
+      verified_by: '', verified_at: '',
       created_at: new Date().toISOString()
     });
   });
 
   persist();
 
-  // Push ke Firestore
   if (typeof fsPushUser === 'function') { try { await fsPushUser(newUser); } catch(e) {} }
   if (typeof fsSyncNow === 'function') { try { await fsSyncNow(); } catch(e) {} }
 
@@ -299,17 +274,11 @@ async function handleRegister(ev) {
     pembinaList.forEach(p => {
       kirimNotif(p.id_user, 'Siswa Baru Menunggu Verifikasi',
         `${name} (${kelas}) mendaftar ke ekskul ${eks?.nama_ekskul || ''}. Silakan verifikasi.`,
-        'warning',
-        { tab: 'verifikasiSiswa', ekskul: idEks }
-      );
+        'warning', { tab: 'verifikasiSiswa', ekskul: idEks });
     });
   });
 
-  info.innerHTML = `
-    <b>✅ Pendaftaran berhasil!</b><br>
-    Akun Anda akan diverifikasi oleh Pembina/Pelatih ekskul.<br>
-    Anda akan mendapat notifikasi setelah disetujui.
-  `;
+  info.innerHTML = `<b>✅ Pendaftaran berhasil!</b><br>Akun Anda akan diverifikasi oleh Pembina/Pelatih ekskul.<br>Anda akan mendapat notifikasi setelah disetujui.`;
   info.classList.remove('hidden');
   document.getElementById('form-register').reset();
 
@@ -374,18 +343,26 @@ async function logout() {
 }
 
 /* ================================================================
-   ENTER APP
+   ENTER APP — dengan error handling
    ================================================================ */
 function enterApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').classList.remove('hidden');
-  ensureEkskulCtx();
-  renderNav();
-  const saved = getSavedTab();
-  const tabs = NAV[CURRENT_USER.role_sistem] || [];
-  const isValid = saved && tabs.some(t => t.key === saved);
-  if (isValid) showTab(saved);
-  else showTab(tabs[0] ? tabs[0].key : 'dashboard');
+  try {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.remove('hidden');
+    ensureEkskulCtx();
+    renderNav();
+    const saved = getSavedTab();
+    const tabs = NAV[CURRENT_USER.role_sistem] || [];
+    const isValid = saved && tabs.some(t => t.key === saved);
+    if (isValid) showTab(saved);
+    else showTab(tabs[0] ? tabs[0].key : 'dashboard');
+  } catch (e) {
+    console.error('[enterApp] error:', e);
+    // Fallback: tampilkan dashboard
+    try { showTab('dashboard'); } catch(e2) {
+      document.getElementById('main-content').innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Error saat memuat aplikasi: ${esc(e.message)}</div></div>`;
+    }
+  }
 }
 
 async function loadFotosFromDB() {
@@ -399,7 +376,6 @@ async function loadFotosFromDB() {
   }
 }
 
-/* ============ INIT ============ */
 document.addEventListener('click', function(e) {
   const roleTab = e.target.closest('#view-login .role-tab');
   if (roleTab && roleTab.dataset.role) { selectLoginRole(roleTab.dataset.role); return; }
