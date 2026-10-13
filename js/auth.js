@@ -62,7 +62,7 @@ function closeForgot() {
 }
 
 /* ================================================================
-   LOGIN
+   LOGIN — Support Firebase Auth + Password Lokal (Guru/Pelatih)
    ================================================================ */
 async function handleLogin(ev) {
   ev.preventDefault();
@@ -110,14 +110,31 @@ async function handleLogin(ev) {
     persist();
     logAction('auto_register_local', { email: userRec.email });
   } else {
+    // User ada di lokal → cek password
     if (!userRec.email) return fail('Akun ini tidak memiliki email');
     showToast('Memverifikasi...');
+
+    // Coba Firebase dulu (untuk admin & siswa yang terdaftar di Firebase Auth)
+    let loginOk = false;
     const result = await fbLogin(userRec.email, pwd);
-    if (!result.ok) return fail(result.msg);
-    if (!userRec.firebase_uid) {
-      userRec.firebase_uid = result.user.uid;
-      persist();
+    if (result.ok) {
+      loginOk = true;
+      if (!userRec.firebase_uid) {
+        userRec.firebase_uid = result.user.uid;
+        persist();
+      }
+    } else {
+      // FALLBACK: Cek hash lokal (untuk guru/pelatih yang dibuat admin tanpa Firebase)
+      const hashInput = await hashPwd(pwd);
+      const legacy = legacyHash(pwd);
+      if (userRec.password_hash && (userRec.password_hash === hashInput || userRec.password_hash === legacy)) {
+        loginOk = true;
+        console.log('[ETAM] Login via password lokal (guru/pelatih)');
+      } else {
+        return fail(result.msg || 'Password salah');
+      }
     }
+    if (!loginOk) return fail('Login gagal');
   }
 
   // 3. Cek role sesuai tab
