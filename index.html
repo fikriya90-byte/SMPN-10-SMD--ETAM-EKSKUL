@@ -7,11 +7,19 @@
 <title>ETAM — Ekstrakurikuler Terpadu Absensi Murid</title>
 <link rel="manifest" href="./manifest.json">
 
+<!-- Firebase SDK (WAJIB) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<!-- QR Code generator & scanner -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- Leaflet peta -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,7 +30,7 @@
 
 <!-- ================= LOGIN ================= -->
 <div id="login-screen">
-  <div class="login-art-bg">
+  <div class="login-art-bg" aria-hidden="true">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
@@ -56,10 +64,10 @@
         <p class="brand-school">SMP Negeri 10 Samarinda</p>
       </div>
 
-      <!-- ============ VIEW LOGIN ============ -->
+      <!-- ================= LOGIN VIEW ================= -->
       <div id="view-login">
         <p class="role-section-label">Masuk Sebagai</p>
-        <div class="role-tabs">
+        <div class="role-tabs" role="tablist">
           <button type="button" class="role-tab active" data-role="murid" onclick="selectLoginRole('murid')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
@@ -84,7 +92,7 @@
 
         <form id="form-login" onsubmit="handleLogin(event)">
           <div class="field-group">
-            <label class="field-label">Email / NIS / NIP</label>
+            <label class="field-label" for="login-email">Email / NIS / NIP</label>
             <div class="input-wrap">
               <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>
@@ -93,12 +101,12 @@
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Password</label>
+            <label class="field-label" for="login-password">Password</label>
             <div class="password-wrap input-wrap">
               <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <input type="password" id="login-password" class="field-input has-icon" placeholder="Password" autocomplete="current-password" required>
+              <input type="password" id="login-password" class="field-input has-icon" placeholder="Masukkan password" autocomplete="current-password" required>
               <button type="button" class="password-toggle" onclick="togglePassword('login-password', this)" tabindex="-1"></button>
             </div>
           </div>
@@ -129,7 +137,7 @@
         </div>
       </div>
 
-      <!-- ============ VIEW REGISTER ============ -->
+      <!-- ================= REGISTER VIEW ================= -->
       <div id="view-register" class="hidden">
         <button type="button" class="back-btn" onclick="closeRegister()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -230,7 +238,7 @@
         </form>
       </div>
 
-      <!-- ============ VIEW FORGOT ============ -->
+      <!-- ================= FORGOT PASSWORD VIEW ================= -->
       <div id="view-forgot" class="hidden">
         <button type="button" class="back-btn" onclick="closeForgot()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -239,19 +247,23 @@
           Kembali ke Login
         </button>
         <h2 class="register-title">Lupa Password</h2>
-        <p class="register-subtitle">Masukkan email atau NIS/NIP. Admin akan mereset password Anda.</p>
+        <p class="register-subtitle">Masukkan email / NIS / NIP. Kami akan kirim link reset ke email Anda.</p>
         <form id="form-forgot" onsubmit="handleForgot(event)">
           <div class="field-group">
             <label class="field-label">Email / NIS / NIP</label>
-            <input type="text" id="forgot-input" class="field-input" required>
+            <input type="text" id="forgot-input" class="field-input" placeholder="email, NIS, atau NIP" required>
           </div>
           <div id="forgot-info" class="alert alert-info hidden"></div>
           <button type="submit" class="btn btn-primary btn-block">
-            <span>Kirim Permintaan</span>
+            <span>Kirim Link Reset</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </button>
+          <p class="text-xs" style="color:var(--text-dim);text-align:center;margin-top:14px;line-height:1.5">
+            Email reset akan dikirim dari <b>noreply@ekskul-etam.firebaseapp.com</b>.<br>
+            Cek juga folder <b>Spam</b> jika tidak muncul dalam 5 menit.
+          </p>
         </form>
       </div>
 
@@ -314,13 +326,22 @@
 <div id="print-area"></div>
 
 <!-- ================= SCRIPTS ================= -->
+
+<!-- Firebase Config — HARUS PALING ATAS -->
+<script src="js/firebase-config.js"></script>
+
+<!-- Utilities -->
 <script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/photo.js"></script>
+
+<!-- Auth & Nav -->
 <script src="js/auth.js"></script>
 <script src="js/nav.js"></script>
+
+<!-- Routes -->
 <script src="js/routes-notifikasi.js"></script>
 <script src="js/routes-password.js"></script>
 <script src="js/routes-export.js"></script>
@@ -333,6 +354,8 @@
 <script src="js/routes-murid.js"></script>
 <script src="js/routes-kas.js"></script>
 <script src="js/routes-laporan.js"></script>
+
+<!-- Bootstrap -->
 <script src="js/init.js"></script>
 
 <script>
