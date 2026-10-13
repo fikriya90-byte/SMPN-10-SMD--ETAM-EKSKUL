@@ -1,5 +1,6 @@
 /* =====================================================================
    routes-pembina.js — Kelola Akun & Pemetaan Pembina/Pelatih (Khusus Admin)
+   Fitur: Buat akun (Firebase Auth + Firestore), Hapus bersih, Reset password
    ===================================================================== */
 
 ROUTES.pembina = el => {
@@ -58,7 +59,7 @@ ROUTES.pembina = el => {
       </div>
       <div class="card-body">
         <p class="text-sm mb-3" style="color:var(--text-muted)">
-          Buat akun baru untuk guru/pelatih, atau petakan akun yang sudah ada ke ekskul.
+          Buat akun baru untuk guru/pelatih (langsung terdaftar di Firebase Auth + Firestore).
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button onclick="openBuatAkunGuru()" class="btn btn-primary" style="padding:14px">
@@ -152,7 +153,7 @@ ROUTES.pembina = el => {
   setTimeout(renderDaftarPembina, 50);
 
   /* ================================================================
-     BUAT AKUN GURU/PELATIH BARU
+     BUAT AKUN GURU/PELATIH BARU — Firebase Auth + Firestore
      ================================================================ */
   window.openBuatAkunGuru = () => {
     const ekskulOptions = EKSKUL.map(e => `
@@ -174,7 +175,7 @@ ROUTES.pembina = el => {
           </div>
           <div class="card-body space-y-3">
             <div class="alert alert-info" style="font-size:12px">
-              ${icon('info', 14)} Akun yang dibuat di sini <b>langsung aktif</b>. Password otomatis di-generate, bisa Anda copy dan kirimkan ke guru/pelatih via WhatsApp.
+              ${icon('info', 14)} Akun akan otomatis terdaftar di <b>Firebase Authentication</b> &amp; <b>Firestore</b>. Password di-generate otomatis.
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -231,7 +232,6 @@ ROUTES.pembina = el => {
       err.classList.add('hidden');
       const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
 
-      // Validasi
       if (!nama) return fail('Nama lengkap wajib diisi');
       if (!email) return fail('Email wajib diisi');
       if (!wa) return fail('No. WhatsApp wajib diisi');
@@ -239,20 +239,32 @@ ROUTES.pembina = el => {
       if (USERS.some(u => u.email && u.email.toLowerCase() === email)) {
         return fail('Email sudah terdaftar. Hapus dulu akun lama di daftar bawah.');
       }
-      if (nip && USERS.some(u => u.nip && u.nip === nip)) return fail('NIP sudah terdaftar');
 
-      // Generate password random
       const passwordPlain = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
-      const passwordHash = await hashPwd(passwordPlain);
 
-      // Buat user
+      // ============ 1. DAFTARKAN KE FIREBASE AUTH ============
+      showToast('Mendaftarkan ke Firebase...');
+      let firebaseUid = '';
+      const fbResult = await fbAdminCreateUser(email, passwordPlain);
+      if (!fbResult.ok) {
+        if (fbResult.code === 'auth/email-already-in-use') {
+          const lanjut = confirm('Email ini sudah terdaftar di Firebase Authentication.\n\nOK = Lanjutkan (akun lama di Firebase akan dipakai)\nCancel = Batalkan');
+          if (!lanjut) return fail('Dibatalkan. Gunakan email lain.');
+        } else {
+          return fail('Gagal daftar ke Firebase: ' + (fbResult.msg || 'Error'));
+        }
+      } else {
+        firebaseUid = fbResult.uid;
+      }
+
+      // ============ 2. SIMPAN KE DATA LOKAL ============
+      const passwordHash = hashPwd(passwordPlain);
       const newId = uid('u');
       const newUser = {
         id_user: newId,
         nama_lengkap: nama,
         email: email,
-        nis: '',
-        nisn: '',
+        nis: '', nisn: '',
         nip: nip,
         password_hash: passwordHash,
         password_plain: passwordPlain,
@@ -262,12 +274,11 @@ ROUTES.pembina = el => {
         foto_profil_url: '',
         active: true,
         last_login: '',
-        firebase_uid: '',
+        firebase_uid: firebaseUid,
         created_at: new Date().toISOString()
       };
       USERS.push(newUser);
 
-      // Buat pemetaan ke setiap ekskul yang dipilih
       ekskulDipilih.forEach(idEks => {
         PEMBINA.push({
           id_pembina: uid('p'),
@@ -279,9 +290,12 @@ ROUTES.pembina = el => {
       });
 
       persist();
-      logAction('buat_akun_guru', { nama, email, role, nip, ekskul: ekskulDipilih.length });
 
-      // Tutup modal & tampilkan hasil
+      // ============ 3. PUSH LANGSUNG KE FIRESTORE ============
+      if (typeof fsPushUser === 'function') { try { await fsPushUser(newUser); } catch(e) { console.warn(e); } }
+      if (typeof fsSyncNow === 'function') { try { await fsSyncNow(); } catch(e) { console.warn(e); } }
+
+      logAction('buat_akun_guru', { nama, email, role, nip, firebaseUid, ekskul: ekskulDipilih.length });
       closeModal();
       showAkunBerhasil(nama, email, passwordPlain, role, wa, ekskulDipilih);
       showTab('pembina');
@@ -289,7 +303,7 @@ ROUTES.pembina = el => {
   };
 
   /* ================================================================
-     TAMPILKAN HASIL AKUN BARU + TOMBOL KIRIM WA
+     TAMPILKAN HASIL AKUN BARU
      ================================================================ */
   window.showAkunBerhasil = (nama, email, password, role, wa, ekskulIds) => {
     const ekskulNames = ekskulIds.map(id => ekskulById(id)?.nama_ekskul).filter(Boolean).join(', ');
@@ -305,14 +319,14 @@ ROUTES.pembina = el => {
           </div>
           <div class="card-body space-y-3">
             <div class="alert alert-info" style="font-size:12px">
-              ${icon('info', 14)} <b>Penting!</b> Password ini hanya muncul sekali. Copy dan kirimkan ke user sekarang.
+              ${icon('info', 14)} <b>Penting!</b> Password ini hanya muncul sekali. Kirim ke user sekarang.
             </div>
 
             <div style="padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px">
               <div class="akun-row"><span class="akun-label">Nama</span><span class="akun-value">${esc(nama)}</span></div>
               <div class="akun-row"><span class="akun-label">Role</span><span class="akun-value">${esc(roleLabel)}</span></div>
-              <div class="akun-row"><span class="akun-label">Email</span><span class="akun-value akun-copy" onclick="copyText('${esc(email)}')" title="Klik untuk copy">${esc(email)} ${icon('link', 12)}</span></div>
-              <div class="akun-row"><span class="akun-label">Password</span><span class="akun-value akun-copy" onclick="copyText('${esc(password)}')" title="Klik untuk copy" style="color:#FBBF24;font-weight:800;letter-spacing:.05em">${esc(password)} ${icon('link', 12)}</span></div>
+              <div class="akun-row"><span class="akun-label">Email</span><span class="akun-value akun-copy" onclick="copyText('${esc(email)}')">${esc(email)} ${icon('link', 12)}</span></div>
+              <div class="akun-row"><span class="akun-label">Password</span><span class="akun-value akun-copy" onclick="copyText('${esc(password)}')" style="color:#FBBF24;font-weight:800;letter-spacing:.05em">${esc(password)} ${icon('link', 12)}</span></div>
               <div class="akun-row"><span class="akun-label">Ekskul</span><span class="akun-value">${esc(ekskulNames)}</span></div>
             </div>
 
@@ -333,22 +347,15 @@ ROUTES.pembina = el => {
       </div>`;
   };
 
-  /* ================================================================
-     COPY TEXT
-     ================================================================ */
   window.copyText = (text) => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => showToast('Disalin: ' + text));
       } else {
         const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
         showToast('Disalin: ' + text);
       }
     } catch (e) { showToast('Gagal copy', 'error'); }
@@ -417,6 +424,7 @@ ROUTES.pembina = el => {
         if (u) u.active = true;
       }
       persist();
+      if (typeof fsSyncNow === 'function') fsSyncNow();
       logAction('tambah_pemetaan', { iu, ie, ist });
       closeModal();
       showToast('Pemetaan ditambahkan');
@@ -443,6 +451,7 @@ ROUTES.pembina = el => {
       showToast('Ditolak', 'warning');
     }
     persist();
+    if (typeof fsSyncNow === 'function') fsSyncNow();
     logAction('approve_pembina', { id, ok });
     showTab('pembina');
   };
@@ -507,6 +516,7 @@ ROUTES.pembina = el => {
       p.status_akun = newStatus;
 
       persist();
+      if (typeof fsSyncNow === 'function') fsSyncNow();
       logAction('edit_pembina', { id, role: newRole, ekskul: newEks });
       closeModal();
       showToast('Perubahan disimpan');
@@ -515,7 +525,7 @@ ROUTES.pembina = el => {
   };
 
   /* ================================================================
-     EDIT DATA USER (Nama, NIP, Email, WA, Status)
+     EDIT DATA USER
      ================================================================ */
   window.editUserGuru = idUser => {
     const u = userById(idUser);
@@ -544,7 +554,7 @@ ROUTES.pembina = el => {
               </select>
             </div>
             <div class="alert alert-info" style="font-size:12px">
-              ${icon('info', 14)} Password tidak bisa diubah di sini. Gunakan tombol <b>Reset Password</b> di bawah kalau user lupa password.
+              ${icon('info', 14)} Password tidak bisa diubah di sini. Gunakan tombol <b>Reset Password</b>.
             </div>
             <div class="flex gap-2 flex-wrap">
               <button onclick="resetPasswordUser('${idUser}')" class="btn btn-warning" style="flex:1">${icon('lupapwd', 14)} Reset Password</button>
@@ -581,21 +591,24 @@ ROUTES.pembina = el => {
       u.active = active;
 
       persist();
+      if (typeof fsPushUser === 'function') fsPushUser(u);
       logAction('edit_user_guru', { idUser, nip });
       closeModal();
-      showToast('Data guru/pelatih diperbarui');
+      showToast('Data diperbarui');
       showTab('pembina');
     };
 
+    /* ============ RESET PASSWORD USER ============ */
     window.resetPasswordUser = async idUser => {
       const u = userById(idUser);
       if (!u) return;
-      if (!confirm(`Reset password ${u.nama_lengkap}? Password baru akan di-generate otomatis.`)) return;
+      if (!confirm(`Reset password ${u.nama_lengkap}?\n\nPassword baru akan di-generate otomatis.`)) return;
 
       const newPwd = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
-      u.password_hash = await hashPwd(newPwd);
+      u.password_hash = hashPwd(newPwd);
       u.password_plain = newPwd;
       persist();
+      if (typeof fsPushUser === 'function') fsPushUser(u);
       logAction('reset_password_user', { idUser });
 
       closeModal();
@@ -604,7 +617,7 @@ ROUTES.pembina = el => {
   };
 
   /* ================================================================
-     HAPUS PEMETAAN — FULL HAPUS USER & EMAIL BISA DIPAKAI LAGI
+     HAPUS PEMBINA — Bersih total (localStorage + Firestore)
      ================================================================ */
   window.hapusPembina = id => {
     const p = PEMBINA.find(x => x.id_pembina === id);
@@ -616,23 +629,26 @@ ROUTES.pembina = el => {
     const jumlahEkskul = PEMBINA.filter(x => x.id_user === p.id_user).length;
     let pesan = `Hapus akun "${u.nama_lengkap}"?\n\n`;
     if (jumlahEkskul > 1) {
-      pesan += `User ini masih terdaftar di ${jumlahEkskul} ekskul.\nSemua pemetaan akan dihapus.\n\n`;
+      pesan += `User ini terdaftar di ${jumlahEkskul} ekskul. Semua pemetaan akan dihapus.\n\n`;
     }
-    pesan += `Akun akan dihapus PERMANEN.\nEmail "${u.email}" bisa dipakai lagi untuk daftar ulang.`;
-    
+    pesan += `Akun akan dihapus PERMANEN dari sistem & Firestore.`;
+
     if (!confirm(pesan)) return;
     if (!confirm('Yakin? Tindakan ini tidak bisa dibatalkan.')) return;
 
-    // Hapus SEMUA pemetaan user ini
-    PEMBINA = PEMBINA.filter(x => x.id_user !== p.id_user);
-    // Hapus akun user
-    USERS = USERS.filter(x => x.id_user !== p.id_user);
-    // Hapus dari anggota (kalau ada)
-    ANGGOTA = ANGGOTA.filter(x => x.id_user !== p.id_user);
-    // Hapus notifikasi user
-    NOTIFIKASI = NOTIFIKASI.filter(x => x.id_user !== p.id_user);
+    const userId = p.id_user;
+
+    // Hapus dari localStorage
+    PEMBINA = PEMBINA.filter(x => x.id_user !== userId);
+    USERS = USERS.filter(x => x.id_user !== userId);
+    ANGGOTA = ANGGOTA.filter(x => x.id_user !== userId);
+    NOTIFIKASI = NOTIFIKASI.filter(x => x.id_user !== userId);
 
     persist();
+
+    // Hapus dari Firestore
+    if (typeof fsDeleteUser === 'function') { try { fsDeleteUser(userId); } catch(e) {} }
+
     logAction('hapus_pembina_full', { id, nama: u.nama_lengkap, email: u.email });
     showToast('Akun dihapus. Email bisa dipakai lagi.', 'success');
     showTab('pembina');
