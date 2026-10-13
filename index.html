@@ -11,7 +11,6 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,7 +18,6 @@
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-art-bg">
     <div class="blob blob-1"></div>
@@ -146,26 +144,23 @@
   </div>
 </div>
 
-<!-- APP SIDEBAR -->
 <div id="app" class="hidden app-sidebar-layout">
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
-
-  <aside id="sidebar" class="sidebar">
-    <div id="nav-tabs"></div>
-  </aside>
-
+  <aside id="sidebar" class="sidebar"><div id="nav-tabs"></div></aside>
   <div class="main-wrapper">
     <header class="top-header">
       <div class="top-header-inner">
         <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
           <span></span><span></span><span></span>
         </button>
-        <img src="https://iili.io/nBiviCX.png" alt="Logo SMPN 10" class="top-logo">
-        <div class="top-header-titles">
-          <h1 class="top-header-title" id="page-title">Dashboard</h1>
-          <p class="top-header-sub">Ekstrakurikuler Terpadu Absensi Murid</p>
+        <div class="brand-block">
+          <img src="https://iili.io/nVPEvv2.md.png" alt="ETAM" class="brand-logo-etam">
+          <div class="brand-text">
+            <h1 class="brand-name">ETAM</h1>
+            <p class="brand-tagline">Ekstrakurikuler Terpadu Absensi Murid</p>
+          </div>
         </div>
-        <img src="https://iili.io/nVPEvv2.md.png" alt="Logo ETAM" class="top-logo top-logo-right">
+        <div class="context-block" id="context-block"></div>
         <div class="top-header-actions">
           <button type="button" class="header-btn" onclick="cycleTheme()" title="Ganti Tema">
             <span id="header-theme-icon"></span>
@@ -180,7 +175,6 @@
     </header>
     <main class="main-content" id="main-content"></main>
   </div>
-
   <div id="toast-container" class="toast-container"></div>
 </div>
 
@@ -197,14 +191,15 @@
 <script src="js/routes-notifikasi.js"></script>
 <script src="js/routes-password.js"></script>
 <script src="js/routes-export.js"></script>
+<script src="js/routes-ekskul.js"></script>
+<script src="js/routes-struktur.js"></script>
+<script src="js/routes-reset.js"></script>
 <script src="js/routes-admin.js"></script>
 <script src="js/routes-guru.js"></script>
 <script src="js/routes-murid.js"></script>
 <script src="js/routes-kas.js"></script>
-<script src="js/routes-struktur.js"></script>
 <script src="js/routes-laporan.js"></script>
 <script src="js/init.js"></script>
-
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
