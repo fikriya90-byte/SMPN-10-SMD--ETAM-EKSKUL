@@ -1,4 +1,4 @@
-/* routes-guru.js — Dashboard guru, sesi, jurnal, izin, foto + Notifikasi */
+/* routes-guru.js — Dashboard guru, sesi, jurnal, izin, foto */
 
 ROUTES._dashGuru = el => {
   const ids = userEkskulIds(CURRENT_USER.id_user);
@@ -128,32 +128,18 @@ window.openSesi = idEks => {
   const jenis = $('#sesi-jenis')?.value || 'rutin';
   const idPertemuan = uid('jr');
   JURNAL.push({
-    id_pertemuan: idPertemuan,
-    id_ekskul: idEks,
-    tanggal: tgl,
-    materi: $('#sesi-materi').value.trim(),
-    dibuat_oleh: CURRENT_USER.id_user,
-    sesi_code: code,
-    durasi_presensi: Number($('#sesi-durasi')?.value) || 30,
-    jenis_sesi: jenis,
-    status: 'open',
-    created_at: new Date().toISOString(),
-    closed_at: ''
+    id_pertemuan: idPertemuan, id_ekskul: idEks, tanggal: tgl,
+    materi: $('#sesi-materi').value.trim(), dibuat_oleh: CURRENT_USER.id_user,
+    sesi_code: code, durasi_presensi: Number($('#sesi-durasi')?.value) || 30,
+    jenis_sesi: jenis, status: 'open', created_at: new Date().toISOString(), closed_at: ''
   });
   persist();
   logAction('open_sesi', { idEks, code, jenis });
-
   const eks = ekskulById(idEks);
   const jenisLabel = jenisSesiLabel(jenis);
-  kirimNotifEkskul(
-    idEks,
-    'Sesi Baru Dibuka',
+  kirimNotifEkskul(idEks, 'Sesi Baru Dibuka',
     `${jenisLabel} untuk ekskul ${eks?.nama_ekskul || ''} tanggal ${tgl} telah dibuka. Segera absen!`,
-    'info',
-    CURRENT_USER.id_user,
-    { tab: 'absen', ekskul: idEks }
-  );
-
+    'info', CURRENT_USER.id_user, { tab: 'absen', ekskul: idEks });
   showTab('sesi');
   showToast('Sesi dibuka! Kode: ' + code);
 };
@@ -174,10 +160,7 @@ window.closeSesi = id => {
   let alpaCount = 0;
   muridOfEkskul(j.id_ekskul).forEach(m => {
     if (!PRESENSI.find(p => p.id_pertemuan === id && p.id_user === m.id_user)) {
-      PRESENSI.push({
-        id_presensi: uid('pr'), id_pertemuan: id, id_user: m.id_user,
-        status: 'alpa', waktu_absen: new Date().toISOString(), approved: true
-      });
+      PRESENSI.push({ id_presensi: uid('pr'), id_pertemuan: id, id_user: m.id_user, status: 'alpa', waktu_absen: new Date().toISOString(), approved: true });
       alpaCount++;
       kirimNotif(m.id_user, 'Tidak Hadir Tanpa Keterangan', `Anda tercatat alpa pada sesi ${fmtTanggal(j.tanggal)}.`, 'warning', { tab: 'riwayat', ekskul: j.id_ekskul });
     }
@@ -193,38 +176,20 @@ window.closeSesi = id => {
 function afterRenderSesi() {
   const el = $('#qr-box');
   if (!el) return;
-  if (!window.QRCode) {
-    console.warn('[QR] Library QRCode belum dimuat');
-    return;
-  }
+  if (!window.QRCode) { console.warn('[QR] Library QRCode belum dimuat'); return; }
   let idEks = CURRENT_EKSKUL_CTX;
   if (!idEks) {
     const r = CURRENT_USER.role_sistem;
     if (r === 'guru' || r === 'pelatih') idEks = userEkskulIds(CURRENT_USER.id_user)[0];
     else if (r === 'pengurus') idEks = CURRENT_EKSKUL_CTX;
   }
-  if (!idEks) {
-    el.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">Pilih ekskul dulu di sidebar.</p>';
-    return;
-  }
+  if (!idEks) { el.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">Pilih ekskul dulu di sidebar.</p>'; return; }
   const j = JURNAL.find(x => x.status === 'open' && x.id_ekskul === idEks);
-  if (!j) {
-    el.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">Belum ada sesi terbuka.</p>';
-    return;
-  }
+  if (!j) { el.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">Belum ada sesi terbuka.</p>'; return; }
   el.innerHTML = '';
   try {
-    new QRCode(el, {
-      text: 'ETAM|' + j.id_pertemuan + '|' + j.sesi_code,
-      width: 180,
-      height: 180,
-      colorDark: '#0B0B0D',
-      colorLight: '#fff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-    console.log('[QR] Berhasil render. Kode:', j.sesi_code);
+    new QRCode(el, { text: 'ETAM|' + j.id_pertemuan + '|' + j.sesi_code, width: 180, height: 180, colorDark: '#0B0B0D', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
   } catch(e) {
-    console.error('[QR] Gagal render:', e);
     el.innerHTML = '<p style="color:#F87171;text-align:center;padding:20px;font-size:12px">Gagal render QR</p>';
   }
 }
@@ -281,7 +246,7 @@ ROUTES.izin = el => {
     if (ok) {
       p.status = p.status.replace('_pending', '');
       p.approved = true;
-      kirimNotif(p.id_user, 'Izin Disetujui', `Pengajuan izin Anda${ekskulId ? ' untuk ekskul ' + ekskulById(ekskulId)?.nama_ekskul : ''} telah disetujui.`, 'success', { tab: 'riwayat', ekskul: ekskulId });
+      kirimNotif(p.id_user, 'Izin Disetujui', `Pengajuan izin Anda telah disetujui.`, 'success', { tab: 'riwayat', ekskul: ekskulId });
     } else {
       p.status = 'alpa';
       p.approved = true;
@@ -357,10 +322,8 @@ ROUTES.foto = el => {
       await FotoDB.put(id, result.dataUrl);
       LAPORAN_FOTO.push({
         id_foto: id, id_pertemuan: idPtm, id_ekskul: idEks, id_user: CURRENT_USER.id_user,
-        file_id: id, file_url: result.dataUrl, thumb_url: '',
-        waktu: result.timestamp,
-        lat: result.lokasi.lat, lng: result.lokasi.lng,
-        akurasi: result.lokasi.accuracy || 0,
+        file_id: id, file_url: result.dataUrl, thumb_url: '', waktu: result.timestamp,
+        lat: result.lokasi.lat, lng: result.lokasi.lng, akurasi: result.lokasi.accuracy || 0,
         dicatat_oleh: CURRENT_USER.id_user, signature: result.signature
       });
       persist();
@@ -382,7 +345,4 @@ ROUTES.foto = el => {
   };
 };
 
-/* =====================================================================
-   CATATAN: ROUTES.profil sudah dipindah ke routes-profil.js (universal)
-   Jangan deklarasikan ROUTES.profil di sini lagi.
-   ===================================================================== */
+/* CATATAN: ROUTES.profil ada di routes-profil.js (jangan deklarasi ulang di sini) */
