@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
    2. Copy nilai pada kolom "User UID" di baris admin
    3. Paste di bawah ini (ganti ISI_UID_ADMIN_DI_SINI)
    ================================================================ */
-const ADMIN_FIREBASE_UID = "ISI_UID_ADMIN_DI_SINI";
+const ADMIN_FIREBASE_UID = "z5NU9hsv8jaS5oGd95eZxNeZpcc2";
 
 /* ================================================================
    INISIALISASI FIREBASE
