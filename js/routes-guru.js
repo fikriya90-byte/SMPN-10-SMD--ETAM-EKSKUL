@@ -1,4 +1,4 @@
-/* routes-guru.js — Dashboard guru, sesi, jurnal, izin, foto, profil + Notifikasi */
+/* routes-guru.js — Dashboard guru, sesi, jurnal, izin, foto + Notifikasi */
 
 ROUTES._dashGuru = el => {
   const ids = userEkskulIds(CURRENT_USER.id_user);
@@ -19,7 +19,7 @@ ROUTES._dashGuru = el => {
           <p class="font-semibold text-sm">Ada ${notifBelumDibaca} notifikasi baru</p>
           <p class="text-xs mt-1" style="color:var(--text-muted)">Klik untuk melihat</p>
         </div>
-        ${icon('arrowRight', 16)}
+        ${icon('chevronRight', 16)}
       </div>
     </div>` : ''}
     <div class="card"><div class="card-header"><h3 class="font-display text-base">Ekskul Anda</h3></div><div class="card-body">
@@ -35,7 +35,7 @@ ROUTES._dashGuru = el => {
             <p class="font-semibold text-sm">${esc(e.nama_ekskul)} ${isActive ? '<span class="chip chip-ok" style="font-size:9px;margin-left:4px">Aktif</span>' : ''}</p>
             <p class="text-xs" style="color:var(--text-dim)">${ag} anggota · Ketua: ${kt ? esc(kt.nama_lengkap) : '—'}</p>
           </div>
-          ${icon('arrowRight', 14)}
+          ${icon('chevronRight', 14)}
         </div>`;
       }).join('') || '<p class="text-sm text-center py-6" style="color:var(--text-dim)">Belum ada ekskul.</p>'}</div></div>`;
 };
@@ -143,7 +143,6 @@ window.openSesi = idEks => {
   persist();
   logAction('open_sesi', { idEks, code, jenis });
 
-  // Notifikasi ke anggota ekskul
   const eks = ekskulById(idEks);
   const jenisLabel = jenisSesiLabel(jenis);
   kirimNotifEkskul(
@@ -180,7 +179,6 @@ window.closeSesi = id => {
         status: 'alpa', waktu_absen: new Date().toISOString(), approved: true
       });
       alpaCount++;
-      // Notif per murid yang alpa
       kirimNotif(m.id_user, 'Tidak Hadir Tanpa Keterangan', `Anda tercatat alpa pada sesi ${fmtTanggal(j.tanggal)}.`, 'warning', { tab: 'riwayat', ekskul: j.id_ekskul });
     }
   });
@@ -195,12 +193,40 @@ window.closeSesi = id => {
 function afterRenderSesi() {
   const el = $('#qr-box');
   if (!el) return;
-  const idEks = CURRENT_EKSKUL_CTX ||
-    (CURRENT_USER.role_sistem === 'pengurus' ? CURRENT_EKSKUL_CTX : userEkskulIds(CURRENT_USER.id_user)[0]);
+  if (!window.QRCode) {
+    console.warn('[QR] Library QRCode belum dimuat');
+    return;
+  }
+  let idEks = CURRENT_EKSKUL_CTX;
+  if (!idEks) {
+    const r = CURRENT_USER.role_sistem;
+    if (r === 'guru' || r === 'pelatih') idEks = userEkskulIds(CURRENT_USER.id_user)[0];
+    else if (r === 'pengurus') idEks = CURRENT_EKSKUL_CTX;
+  }
+  if (!idEks) {
+    el.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">Pilih ekskul dulu di sidebar.</p>';
+    return;
+  }
   const j = JURNAL.find(x => x.status === 'open' && x.id_ekskul === idEks);
-  if (!j || !window.QRCode) return;
+  if (!j) {
+    el.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">Belum ada sesi terbuka.</p>';
+    return;
+  }
   el.innerHTML = '';
-  new QRCode(el, { text: 'ETAM|' + j.id_pertemuan + '|' + j.sesi_code, width: 180, height: 180, colorDark: '#0B0B0D', colorLight: '#fff' });
+  try {
+    new QRCode(el, {
+      text: 'ETAM|' + j.id_pertemuan + '|' + j.sesi_code,
+      width: 180,
+      height: 180,
+      colorDark: '#0B0B0D',
+      colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    console.log('[QR] Berhasil render. Kode:', j.sesi_code);
+  } catch(e) {
+    console.error('[QR] Gagal render:', e);
+    el.innerHTML = '<p style="color:#F87171;text-align:center;padding:20px;font-size:12px">Gagal render QR</p>';
+  }
 }
 
 ROUTES.jurnal = el => {
@@ -356,67 +382,7 @@ ROUTES.foto = el => {
   };
 };
 
-ROUTES.profil = el => {
-  if (CURRENT_USER.role_sistem === 'murid') return renderProfilUser(el);
-  return showTab('ekskul');
-};
-
-function renderProfilUser(el) {
-  const u = userById(CURRENT_USER.id_user);
-  if (!u) return;
-  el.innerHTML = `<div class="card mb-4"><div class="card-header"><h2 class="font-display text-base">${icon('profil', 18)} Profil Saya</h2></div>
-    <div class="card-body text-center">
-      <div style="margin:0 auto 12px;width:120px;height:120px">
-        ${u.foto_profil_url ? `<img src="${u.foto_profil_url}" style="width:120px;height:120px;border-radius:50%;object-fit:cover">` : `<div style="width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:38px;background:linear-gradient(135deg,#3B82F6,#8B5CF6)">${avatarInitials(u.nama_lengkap)}</div>`}
-      </div>
-      <div>
-        <label class="btn btn-primary cursor-pointer" style="padding:8px 16px;font-size:13px">${icon('camera', 14)} Ganti Foto<input type="file" id="pf-foto" accept="image/*" style="display:none" onchange="uploadFotoProfil(event)"></label>
-        ${u.foto_profil_url ? `<button onclick="hapusFotoProfil()" class="btn btn-danger" style="padding:8px 16px;font-size:13px;margin-left:8px">${icon('trash', 14)} Hapus</button>` : ''}
-      </div>
-    </div></div>
-    <div class="card"><div class="card-header"><h3 class="font-display text-base">Data Pribadi</h3></div>
-    <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div class="sm:col-span-2"><label class="field-label">Nama</label><input id="p-nama" class="field-input" value="${esc(u.nama_lengkap)}"></div>
-      <div><label class="field-label">Email</label><input class="field-input" value="${esc(u.email)}" disabled></div>
-      <div><label class="field-label">NIS</label><input class="field-input" value="${esc(u.nis || '-')}" disabled></div>
-      <div><label class="field-label">NISN</label><input class="field-input" value="${esc(u.nisn || '-')}" disabled></div>
-      <div><label class="field-label">Kelas</label><input id="p-kelas" class="field-input" value="${esc(u.kelas || '')}"></div>
-      <div class="sm:col-span-2"><label class="field-label">No. WA</label><input id="p-wa" class="field-input" value="${esc(u.no_wa || '')}"></div>
-      <div class="sm:col-span-2 flex justify-end"><button onclick="saveProfilUser()" class="btn btn-primary">${icon('check', 14)} Simpan</button></div>
-    </div></div>`;
-
-  window.saveProfilUser = () => {
-    u.nama_lengkap = $('#p-nama').value.trim();
-    u.kelas = $('#p-kelas').value.trim();
-    u.no_wa = $('#p-wa').value.trim();
-    CURRENT_USER.nama_lengkap = u.nama_lengkap;
-    CURRENT_USER.kelas = u.kelas;
-    persist();
-    logAction('save_profil', {});
-    showToast('Disimpan');
-  };
-  window.uploadFotoProfil = async ev => {
-    const f = ev.target.files[0];
-    if (!f) return;
-    try {
-      const data = await compressImage(f, 512, 0.85);
-      u.foto_profil_url = data;
-      CURRENT_USER.foto_profil_url = data;
-      persist();
-      logAction('upload_foto_profil', {});
-      showTab('profil');
-      showToast('Foto diubah');
-    } catch (e) { showToast('Gagal upload', 'error'); }
-  };
-  window.hapusFotoProfil = () => {
-    if (!confirm('Hapus foto profil?')) return;
-    u.foto_profil_url = '';
-    CURRENT_USER.foto_profil_url = '';
-    persist();
-    logAction('hapus_foto_profil', {});
-    showTab('profil');
-    showToast('Dihapus', 'warning');
-  };
-}
-
-window.renderProfilUser = renderProfilUser;
+/* =====================================================================
+   CATATAN: ROUTES.profil sudah dipindah ke routes-profil.js (universal)
+   Jangan deklarasikan ROUTES.profil di sini lagi.
+   ===================================================================== */
