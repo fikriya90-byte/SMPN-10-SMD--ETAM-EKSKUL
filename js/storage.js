@@ -1,4 +1,4 @@
-/* storage.js — DB Layer + Helper + Notifikasi dengan Target Tab */
+/* storage.js — DB Layer + Helper Struktur, Arsip, Koordinator, Seksi */
 
 const DB = {
   get(k, d) { try { const s = localStorage.getItem('etam_' + k); return s ? JSON.parse(s) : (d ?? null); } catch (e) { return d ?? null; } },
@@ -43,55 +43,25 @@ function logAction(aksi, detail = {}) {
   DB.set('logs', LOGS);
 }
 
-/* ============ NOTIFIKASI DENGAN TARGET ============ */
-
-/**
- * Kirim notifikasi
- * @param {string} idUser - Penerima
- * @param {string} judul
- * @param {string} isi
- * @param {string} tipe - info|success|warning|error
- * @param {object} opts - { tab: 'sesi'|'izin'|..., ekskul: 'idEkskul', data: {} }
- */
+/* ============ NOTIFIKASI ============ */
 function kirimNotif(idUser, judul, isi, tipe = 'info', opts = {}) {
   if (!idUser) return;
   NOTIFIKASI.push({
-    id_notif: uid('nt'),
-    id_user: idUser,
-    judul, isi, tipe,
-    target_tab: opts.tab || '',
-    target_ekskul: opts.ekskul || '',
-    target_data: opts.data || {},
-    dibaca: false,
-    created_at: new Date().toISOString()
+    id_notif: uid('nt'), id_user: idUser, judul, isi, tipe,
+    target_tab: opts.tab || '', target_ekskul: opts.ekskul || '', target_data: opts.data || {},
+    dibaca: false, created_at: new Date().toISOString()
   });
   if (NOTIFIKASI.length > 500) NOTIFIKASI = NOTIFIKASI.slice(-500);
   DB.set('notifikasi', NOTIFIKASI);
   updateNotifBadge();
 }
-
 function kirimNotifEkskul(idEkskul, judul, isi, tipe = 'info', kecualiUserId = null, opts = {}) {
   const o = Object.assign({}, opts, { ekskul: idEkskul });
-  anggotaAktifOf(idEkskul).forEach(a => {
-    if (a.id_user !== kecualiUserId) kirimNotif(a.id_user, judul, isi, tipe, o);
-  });
+  anggotaAktifOf(idEkskul).forEach(a => { if (a.id_user !== kecualiUserId) kirimNotif(a.id_user, judul, isi, tipe, o); });
 }
-
-function kirimNotifSemua(judul, isi, tipe = 'info', opts = {}) {
-  USERS.forEach(u => { if (u.active) kirimNotif(u.id_user, judul, isi, tipe, opts); });
-}
-
-function notifSaya() {
-  if (!CURRENT_USER) return [];
-  return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user)
-    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
-}
-
-function countNotifBelumDibaca() {
-  if (!CURRENT_USER) return 0;
-  return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user && !n.dibaca).length;
-}
-
+function kirimNotifSemua(judul, isi, tipe = 'info', opts = {}) { USERS.forEach(u => { if (u.active) kirimNotif(u.id_user, judul, isi, tipe, opts); }); }
+function notifSaya() { if (!CURRENT_USER) return []; return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user).sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')); }
+function countNotifBelumDibaca() { if (!CURRENT_USER) return 0; return NOTIFIKASI.filter(n => n.id_user === CURRENT_USER.id_user && !n.dibaca).length; }
 function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
@@ -105,8 +75,9 @@ function getStrukturTahun(idEkskul, tahun) {
   tahun = tahun || TAHUN_AJARAN_AKTIF;
   if (!STRUKTUR_EKSKUL[idEkskul]) STRUKTUR_EKSKUL[idEkskul] = {};
   if (!STRUKTUR_EKSKUL[idEkskul][tahun]) {
-    STRUKTUR_EKSKUL[idEkskul][tahun] = { ketua: '', wakil_ketua: '', sekretaris: '', bendahara: '', dokumentasi: '', tahun, tanggal_set: '', diset_oleh: '' };
+    STRUKTUR_EKSKUL[idEkskul][tahun] = { ketua: '', wakil_ketua: '', sekretaris: '', bendahara: '', dokumentasi: '', seksi: [], tahun, tanggal_set: '', diset_oleh: '' };
   }
+  if (!STRUKTUR_EKSKUL[idEkskul][tahun].seksi) STRUKTUR_EKSKUL[idEkskul][tahun].seksi = [];
   return STRUKTUR_EKSKUL[idEkskul][tahun];
 }
 function setJabatan(idEkskul, jabatan, idUser) {
@@ -135,9 +106,77 @@ function arsipStrukturTahun(idEkskul, tahun) {
 function resetStrukturUntukTahunBaru(idEkskul, tahunBaru) {
   arsipStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
   if (!STRUKTUR_EKSKUL[idEkskul]) STRUKTUR_EKSKUL[idEkskul] = {};
-  STRUKTUR_EKSKUL[idEkskul][tahunBaru] = { ketua: '', wakil_ketua: '', sekretaris: '', bendahara: '', dokumentasi: '', tahun: tahunBaru, tanggal_set: '', diset_oleh: '' };
+  STRUKTUR_EKSKUL[idEkskul][tahunBaru] = { ketua: '', wakil_ketua: '', sekretaris: '', bendahara: '', dokumentasi: '', seksi: [], tahun: tahunBaru, tanggal_set: '', diset_oleh: '' };
   DB.set('struktur', STRUKTUR_EKSKUL);
   return STRUKTUR_EKSKUL[idEkskul][tahunBaru];
+}
+
+/* ============ SEKSI / DIVISI CUSTOM ============ */
+function getSeksiList(idEkskul, tahun) {
+  const s = getStrukturTahun(idEkskul, tahun);
+  return s.seksi || [];
+}
+function tambahSeksi(idEkskul, namaSeksi) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  if (!s.seksi) s.seksi = [];
+  if (s.seksi.some(x => x.nama.toLowerCase() === namaSeksi.toLowerCase())) return false;
+  s.seksi.push({ id: uid('sek'), nama: namaSeksi.trim(), anggota: [], dibuat_pada: new Date().toISOString() });
+  s.tanggal_set = new Date().toISOString();
+  s.diset_oleh = CURRENT_USER ? CURRENT_USER.id_user : '';
+  persist();
+  return true;
+}
+function hapusSeksi(idEkskul, idSeksi) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  if (!s.seksi) return false;
+  s.seksi = s.seksi.filter(x => x.id !== idSeksi);
+  persist();
+  return true;
+}
+function renameSeksi(idEkskul, idSeksi, namaBaru) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  if (!s.seksi) return false;
+  const sek = s.seksi.find(x => x.id === idSeksi);
+  if (!sek) return false;
+  sek.nama = namaBaru.trim();
+  persist();
+  return true;
+}
+function setAnggotaSeksi(idEkskul, idSeksi, anggotaIds) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  if (!s.seksi) return false;
+  const sek = s.seksi.find(x => x.id === idSeksi);
+  if (!sek) return false;
+  sek.anggota = anggotaIds.slice();
+  persist();
+  return true;
+}
+function tambahAnggotaSeksi(idEkskul, idSeksi, idUser) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  if (!s.seksi) return false;
+  const sek = s.seksi.find(x => x.id === idSeksi);
+  if (!sek) return false;
+  if (sek.anggota.includes(idUser)) return false;
+  sek.anggota.push(idUser);
+  persist();
+  return true;
+}
+function hapusAnggotaSeksi(idEkskul, idSeksi, idUser) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  if (!s.seksi) return false;
+  const sek = s.seksi.find(x => x.id === idSeksi);
+  if (!sek) return false;
+  sek.anggota = sek.anggota.filter(x => x !== idUser);
+  persist();
+  return true;
+}
+function getSeksiOfUser(idEkskul, idUser, tahun) {
+  return getSeksiList(idEkskul, tahun).filter(s => s.anggota.includes(idUser));
+}
+function isInSeksi(idEkskul, idSeksi, idUser) {
+  const s = getStrukturTahun(idEkskul, TAHUN_AJARAN_AKTIF);
+  const sek = (s.seksi || []).find(x => x.id === idSeksi);
+  return sek ? sek.anggota.includes(idUser) : false;
 }
 
 /* ============ ARSIP HELPER ============ */
@@ -239,6 +278,15 @@ window.getUserByJabatan = getUserByJabatan;
 window.hasJabatan = hasJabatan;
 window.arsipStrukturTahun = arsipStrukturTahun;
 window.resetStrukturUntukTahunBaru = resetStrukturUntukTahunBaru;
+window.getSeksiList = getSeksiList;
+window.tambahSeksi = tambahSeksi;
+window.hapusSeksi = hapusSeksi;
+window.renameSeksi = renameSeksi;
+window.setAnggotaSeksi = setAnggotaSeksi;
+window.tambahAnggotaSeksi = tambahAnggotaSeksi;
+window.hapusAnggotaSeksi = hapusAnggotaSeksi;
+window.getSeksiOfUser = getSeksiOfUser;
+window.isInSeksi = isInSeksi;
 window.arsipkanSiswa = arsipkanSiswa;
 window.restoreSiswa = restoreSiswa;
 window.hapusPermanenSiswa = hapusPermanenSiswa;
