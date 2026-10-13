@@ -1050,6 +1050,9 @@ tbody tr:hover td{background:var(--surface-2)}
 /* ============ TABLE WRAPPER ============ */
 #daftar-pembina-wrap{width:100%}
 
+/* ============ HIDE OLD HEADER ============ */
+.app-header,.nav-bar{display:none !important}
+
 /* ============ PRINT ============ */
 #print-area{display:none}
 @media print{
@@ -1058,6 +1061,3 @@ tbody tr:hover td{background:var(--surface-2)}
   @page{size:A4;margin:1.2cm}
   html,body{background:#fff !important;color:#000 !important}
 }
-
-/* ============ STICKY HEADER v6 ============ */
-.app-header,.nav-bar{display:none !important}
