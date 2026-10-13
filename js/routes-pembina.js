@@ -1,4 +1,4 @@
-/* routes-pembina.js — Kelola Pembina & Pelatih (Khusus Admin) */
+/* routes-pembina.js — Kelola Akun & Pemetaan Pembina/Pelatih (Khusus Admin) */
 
 ROUTES.pembina = el => {
   if (CURRENT_USER.role_sistem !== 'admin') {
@@ -9,6 +9,7 @@ ROUTES.pembina = el => {
   const pendingList = PEMBINA.filter(p => p.status_akun === 'pending');
 
   el.innerHTML = `
+    <!-- STATISTIK -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <div class="stat-card stat-p"><p class="text-xs uppercase" style="color:var(--text-dim)">Menunggu Verifikasi</p><p class="text-xl font-extrabold mt-1" style="color:#F472B6">${pendingList.length}</p></div>
       <div class="stat-card stat-h"><p class="text-xs uppercase" style="color:var(--text-dim)">Total Guru</p><p class="text-xl font-extrabold mt-1" style="color:#34D399">${guruList.filter(u => u.role_sistem === 'guru').length}</p></div>
@@ -16,6 +17,7 @@ ROUTES.pembina = el => {
       <div class="stat-card stat-i"><p class="text-xs uppercase" style="color:var(--text-dim)">Pemetaan Aktif</p><p class="text-xl font-extrabold mt-1" style="color:#FBBF24">${PEMBINA.filter(p => p.status_akun === 'aktif').length}</p></div>
     </div>
 
+    <!-- PENDING VERIFIKASI -->
     ${pendingList.length ? `
       <div class="card mb-4" style="border-left:4px solid #EC4899">
         <div class="card-header">
@@ -47,41 +49,27 @@ ROUTES.pembina = el => {
       </div>
     ` : ''}
 
+    <!-- TOMBOL UTAMA -->
     <div class="card mb-4">
       <div class="card-header">
-        <h2 class="font-display text-base">${icon('plus', 18)} Tambah Pemetaan Pembina / Pelatih</h2>
+        <h2 class="font-display text-base">${icon('plus', 18)} Tambah Akun / Pemetaan</h2>
       </div>
       <div class="card-body">
-        <p class="text-sm mb-3" style="color:var(--text-muted)">Petakan guru/pelatih ke ekskul. Satu guru bisa membina lebih dari 1 ekskul.</p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label class="field-label">User (Guru / Pelatih)</label>
-            <select id="pm-user" class="field-input">
-              <option value="">-- Pilih --</option>
-              ${guruList.map(u => `<option value="${u.id_user}">${esc(u.nama_lengkap)}${u.nip ? ' (NIP: ' + esc(u.nip) + ')' : ''}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label class="field-label">Ekskul</label>
-            <select id="pm-ekskul" class="field-input">
-              <option value="">-- Pilih --</option>
-              ${EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label class="field-label">Status</label>
-            <select id="pm-status" class="field-input">
-              <option value="aktif">Aktif</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
-        </div>
-        <div class="flex gap-2 justify-end mt-3">
-          <button onclick="tambahPembinaBaru()" class="btn btn-primary">${icon('plus', 14)} Tambah Pemetaan</button>
+        <p class="text-sm mb-3" style="color:var(--text-muted)">
+          Buat akun baru untuk guru/pelatih, atau petakan akun yang sudah ada ke ekskul.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button onclick="openBuatAkunGuru()" class="btn btn-primary" style="padding:14px">
+            ${icon('user', 18)} Buat Akun Guru/Pelatih Baru
+          </button>
+          <button onclick="openMapPembinaModal()" class="btn btn-blue" style="padding:14px">
+            ${icon('link', 18)} Petakan Akun ke Ekskul
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- DAFTAR PEMBINA -->
     <div class="card">
       <div class="card-header">
         <h3 class="font-display text-base">${icon('users', 18)} Daftar Pembina & Pelatih</h3>
@@ -110,6 +98,9 @@ ROUTES.pembina = el => {
     </div>
   `;
 
+  /* ================================================================
+     RENDER DAFTAR PEMBINA
+     ================================================================ */
   window.renderDaftarPembina = () => {
     const fEks = $('#filter-pm-ekskul')?.value || '';
     const fRole = $('#filter-pm-role')?.value || '';
@@ -158,20 +149,281 @@ ROUTES.pembina = el => {
 
   setTimeout(renderDaftarPembina, 50);
 
-  window.tambahPembinaBaru = () => {
-    const idUser = $('#pm-user').value;
-    const idEks = $('#pm-ekskul').value;
-    const status = $('#pm-status').value;
-    if (!idUser || !idEks) return showToast('Pilih user dan ekskul', 'warning');
-    if (PEMBINA.some(p => p.id_user === idUser && p.id_ekskul === idEks)) return showToast('Pemetaan ini sudah ada', 'warning');
-    PEMBINA.push({ id_pembina: uid('p'), id_user: idUser, id_ekskul: idEks, status_akun: status, created_at: new Date().toISOString() });
-    if (status === 'aktif') { const u = userById(idUser); if (u) u.active = true; }
-    persist();
-    logAction('tambah_pembina', { idUser, idEks, status });
-    showToast('Pemetaan ditambahkan');
-    showTab('pembina');
+  /* ================================================================
+     BUAT AKUN GURU/PELATIH BARU (FITUR BARU)
+     ================================================================ */
+  window.openBuatAkunGuru = () => {
+    const ekskulOptions = EKSKUL.map(e => `
+      <label class="pilih-ekskul-item">
+        <input type="checkbox" class="chk-ekskul-baru" value="${e.id_ekskul}" style="width:18px;height:18px;accent-color:#8B5CF6">
+        <div class="pilih-ekskul-info">
+          ${e.logo_url ? `<img src="${e.logo_url}" class="pilih-ekskul-logo" style="object-fit:cover">` : `<div class="pilih-ekskul-logo">${esc(e.nama_ekskul.slice(0,2).toUpperCase())}</div>`}
+          <span class="pilih-ekskul-name">${esc(e.nama_ekskul)}</span>
+        </div>
+      </label>
+    `).join('');
+
+    $('#modal-root').innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="card w-full max-w-2xl animate-fade-in" style="max-height:90vh;overflow:auto">
+          <div class="card-header">
+            <h3 class="font-display text-base">${icon('user', 18)} Buat Akun Guru / Pelatih Baru</h3>
+            <button onclick="closeModal()" class="btn-close-notif">${icon('close', 12)}</button>
+          </div>
+          <div class="card-body space-y-3">
+            <div class="alert alert-info" style="font-size:12px">
+              ${icon('info', 14)} Akun yang dibuat di sini <b>langsung aktif</b> — tidak perlu verifikasi lagi. Password otomatis di-generate, bisa Anda copy dan kirimkan ke guru/pelatih via WhatsApp.
+            </div>
+
+            <!-- DATA AKUN -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="field-label">Nama Lengkap & Gelar <span style="color:#F87171">*</span></label>
+                <input id="ba-nama" class="field-input" placeholder="cth: Budi Santoso, S.Pd.">
+              </div>
+              <div>
+                <label class="field-label">Role <span style="color:#F87171">*</span></label>
+                <select id="ba-role" class="field-input">
+                  <option value="guru">Guru (Pembina)</option>
+                  <option value="pelatih">Pelatih</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">NIP (opsional)</label>
+                <input id="ba-nip" class="field-input" placeholder="Kosongkan jika tidak ada NIP">
+              </div>
+              <div>
+                <label class="field-label">Email <span style="color:#F87171">*</span></label>
+                <input id="ba-email" type="email" class="field-input" placeholder="nama@email.com">
+              </div>
+              <div>
+                <label class="field-label">No. WhatsApp <span style="color:#F87171">*</span></label>
+                <input id="ba-wa" type="tel" class="field-input" placeholder="08xx">
+              </div>
+            </div>
+
+            <!-- EKSKUL YANG DIBINA -->
+            <div>
+              <label class="field-label">Ekskul yang Dibina <span style="color:#F87171">*</span></label>
+              <p class="text-xs" style="color:var(--text-dim);margin-bottom:8px">Pilih satu atau lebih ekskul</p>
+              ${EKSKUL.length ? `<div class="pilih-ekskul-list">${ekskulOptions}</div>` : '<p class="text-sm text-center py-3" style="color:var(--text-dim)">Belum ada ekskul. Buat ekskul dulu di menu "Manajemen Ekskul".</p>'}
+            </div>
+
+            <div id="ba-error" class="alert alert-error hidden"></div>
+
+            <div class="flex gap-2 justify-end">
+              <button onclick="closeModal()" class="btn btn-dark">Batal</button>
+              <button onclick="doBuatAkunGuru()" class="btn btn-primary">${icon('check', 14)} Buat Akun</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    window.doBuatAkunGuru = async () => {
+      const nama = ($('#ba-nama')?.value || '').trim();
+      const role = $('#ba-role')?.value || 'guru';
+      const nip = ($('#ba-nip')?.value || '').trim();
+      const email = ($('#ba-email')?.value || '').trim().toLowerCase();
+      const wa = ($('#ba-wa')?.value || '').trim();
+      const ekskulDipilih = Array.from(document.querySelectorAll('.chk-ekskul-baru:checked')).map(c => c.value);
+
+      const err = $('#ba-error');
+      err.classList.add('hidden');
+      const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
+
+      // Validasi
+      if (!nama) return fail('Nama lengkap wajib diisi');
+      if (!email) return fail('Email wajib diisi');
+      if (!wa) return fail('No. WhatsApp wajib diisi');
+      if (!ekskulDipilih.length) return fail('Pilih minimal 1 ekskul');
+      if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar');
+      if (nip && USERS.some(u => u.nip && u.nip === nip)) return fail('NIP sudah terdaftar');
+
+      // Generate password random
+      const passwordPlain = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
+      const passwordHash = await hashPwd(passwordPlain);
+
+      // Buat user
+      const newId = uid('u');
+      const newUser = {
+        id_user: newId,
+        nama_lengkap: nama,
+        email: email,
+        nis: '',
+        nisn: '',
+        nip: nip,
+        password_hash: passwordHash,
+        no_wa: wa,
+        role_sistem: role,
+        kelas: '',
+        foto_profil_url: '',
+        active: true,       // langsung aktif
+        last_login: '',
+        created_at: new Date().toISOString()
+      };
+      USERS.push(newUser);
+
+      // Buat pemetaan ke setiap ekskul yang dipilih
+      ekskulDipilih.forEach(idEks => {
+        PEMBINA.push({
+          id_pembina: uid('p'),
+          id_user: newId,
+          id_ekskul: idEks,
+          status_akun: 'aktif',  // langsung aktif
+          created_at: new Date().toISOString()
+        });
+      });
+
+      persist();
+      logAction('buat_akun_guru', { nama, email, role, nip, ekskul: ekskulDipilih.length });
+
+      // Tutup modal & tampilkan hasil
+      closeModal();
+      showAkunBerhasil(nama, email, passwordPlain, role, wa, ekskulDipilih);
+      showTab('pembina');
+    };
   };
 
+  /* ================================================================
+     TAMPILKAN HASIL AKUN BARU + TOMBOL KIRIM WA
+     ================================================================ */
+  window.showAkunBerhasil = (nama, email, password, role, wa, ekskulIds) => {
+    const ekskulNames = ekskulIds.map(id => ekskulById(id)?.nama_ekskul).filter(Boolean).join(', ');
+    const roleLabel = role === 'guru' ? 'Guru (Pembina)' : 'Pelatih';
+    const pesan = `Assalamualaikum ${nama}, berikut akun ETAM Anda:\n\nEmail: ${email}\nPassword: ${password}\nRole: ${roleLabel}\nEkskul: ${ekskulNames}\n\nSilakan login di aplikasi ETAM dan segera ganti password Anda.\nTerima kasih 🙏`;
+
+    $('#modal-root').innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="card w-full max-w-lg animate-fade-in">
+          <div class="card-header">
+            <h3 class="font-display text-base">${icon('check', 18)} Akun Berhasil Dibuat</h3>
+            <button onclick="closeModal()" class="btn-close-notif">${icon('close', 12)}</button>
+          </div>
+          <div class="card-body space-y-3">
+            <div class="alert alert-info" style="font-size:12px">
+              ${icon('info', 14)} <b>Penting!</b> Password ini hanya muncul sekali. Copy dan kirimkan ke user sekarang.
+            </div>
+
+            <div style="padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px">
+              <div class="akun-row"><span class="akun-label">Nama</span><span class="akun-value">${esc(nama)}</span></div>
+              <div class="akun-row"><span class="akun-label">Role</span><span class="akun-value">${esc(roleLabel)}</span></div>
+              <div class="akun-row"><span class="akun-label">Email</span><span class="akun-value akun-copy" onclick="copyText('${esc(email)}')" title="Klik untuk copy">${esc(email)} ${icon('link', 12)}</span></div>
+              <div class="akun-row"><span class="akun-label">Password</span><span class="akun-value akun-copy" onclick="copyText('${esc(password)}')" title="Klik untuk copy" style="color:#FBBF24;font-weight:800;letter-spacing:.05em">${esc(password)} ${icon('link', 12)}</span></div>
+              <div class="akun-row"><span class="akun-label">Ekskul</span><span class="akun-value">${esc(ekskulNames)}</span></div>
+            </div>
+
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="copyText('${esc(email)}')" class="btn btn-dark" style="flex:1">${icon('link', 14)} Copy Email</button>
+              <button onclick="copyText('${esc(password)}')" class="btn btn-dark" style="flex:1">${icon('link', 14)} Copy Password</button>
+            </div>
+
+            ${wa ? `
+              <button onclick="openWA('${esc(wa)}', \`${pesan.replace(/`/g, '\\`')}\`)" class="btn btn-success w-full" style="padding:12px">
+                ${icon('wa', 16)} Kirim via WhatsApp ke ${esc(wa)}
+              </button>
+            ` : ''}
+
+            <button onclick="closeModal()" class="btn btn-primary w-full">Selesai</button>
+          </div>
+        </div>
+      </div>`;
+  };
+
+  /* ================================================================
+     COPY TEXT HELPER
+     ================================================================ */
+  window.copyText = (text) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('Disalin: ' + text));
+      } else {
+        // Fallback untuk browser lama
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Disalin: ' + text);
+      }
+    } catch (e) { showToast('Gagal copy', 'error'); }
+  };
+
+  /* ================================================================
+     PEMETAAN AKUN EXISTING KE EKSKUL
+     ================================================================ */
+  window.openMapPembinaModal = () => {
+    const g = USERS.filter(u => u.role_sistem === 'guru' || u.role_sistem === 'pelatih');
+    if (!g.length) {
+      return showToast('Belum ada akun guru/pelatih. Buat dulu lewat "Buat Akun Baru".', 'warning');
+    }
+    $('#modal-root').innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="card w-full max-w-lg animate-fade-in">
+          <div class="card-header">
+            <h3 class="font-display text-base">${icon('link', 18)} Petakan Akun ke Ekskul</h3>
+            <button onclick="closeModal()" class="btn-close-notif">${icon('close', 12)}</button>
+          </div>
+          <div class="card-body space-y-3">
+            <p class="text-sm" style="color:var(--text-muted)">Pilih user yang sudah ada lalu tentukan ekskul yang dibina.</p>
+            <div>
+              <label class="field-label">User</label>
+              <select id="map-user" class="field-input">
+                ${g.map(u => `<option value="${u.id_user}">${esc(u.nama_lengkap)} (${u.role_sistem})${u.nip ? ' — NIP ' + esc(u.nip) : ''}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Ekskul</label>
+              <select id="map-ekskul" class="field-input">
+                ${EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Status</label>
+              <select id="map-status" class="field-input">
+                <option value="aktif">Aktif</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button onclick="closeModal()" class="btn btn-dark">Batal</button>
+              <button onclick="saveMapPembina()" class="btn btn-primary">${icon('check', 14)} Petakan</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    window.saveMapPembina = () => {
+      const iu = $('#map-user').value;
+      const ie = $('#map-ekskul').value;
+      const ist = $('#map-status').value;
+      if (!iu || !ie) return showToast('Lengkapi', 'warning');
+      if (PEMBINA.some(p => p.id_user === iu && p.id_ekskul === ie)) return showToast('Pemetaan ini sudah ada', 'warning');
+
+      PEMBINA.push({
+        id_pembina: uid('p'),
+        id_user: iu,
+        id_ekskul: ie,
+        status_akun: ist,
+        created_at: new Date().toISOString()
+      });
+      if (ist === 'aktif') {
+        const u = userById(iu);
+        if (u) u.active = true;
+      }
+      persist();
+      logAction('tambah_pemetaan', { iu, ie, ist });
+      closeModal();
+      showToast('Pemetaan ditambahkan');
+      showTab('pembina');
+    };
+  };
+
+  /* ================================================================
+     APPROVE / REJECT PENDAFTARAN
+     ================================================================ */
   window.approvePembina = (id, ok) => {
     const p = PEMBINA.find(x => x.id_pembina === id);
     if (!p) return;
@@ -192,6 +444,9 @@ ROUTES.pembina = el => {
     showTab('pembina');
   };
 
+  /* ================================================================
+     EDIT PEMETAAN
+     ================================================================ */
   window.editPembina = id => {
     const p = PEMBINA.find(x => x.id_pembina === id);
     if (!p) return;
@@ -256,7 +511,9 @@ ROUTES.pembina = el => {
     };
   };
 
-  /* ============ EDIT USER (DENGAN NIP) ============ */
+  /* ================================================================
+     EDIT DATA USER (Nama, NIP, Email, WA, Status)
+     ================================================================ */
   window.editUserGuru = idUser => {
     const u = userById(idUser);
     if (!u) return;
@@ -272,9 +529,7 @@ ROUTES.pembina = el => {
             <div><label class="field-label">Nama Lengkap & Gelar</label>
               <input id="eu-nama" class="field-input" value="${esc(u.nama_lengkap)}" placeholder="cth: Budi Santoso, S.Pd."></div>
             <div><label class="field-label">NIP (opsional)</label>
-              <input id="eu-nip" class="field-input" value="${esc(u.nip || '')}" placeholder="Kosongkan jika tidak ada NIP">
-              <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika belum ada NIP / bukan PNS</p>
-            </div>
+              <input id="eu-nip" class="field-input" value="${esc(u.nip || '')}" placeholder="Kosongkan jika tidak ada NIP"></div>
             <div><label class="field-label">Email</label>
               <input id="eu-email" class="field-input" value="${esc(u.email || '')}"></div>
             <div><label class="field-label">No. WhatsApp</label>
@@ -286,7 +541,10 @@ ROUTES.pembina = el => {
               </select>
             </div>
             <div class="alert alert-info" style="font-size:12px">
-              ${icon('info', 14)} Password tidak bisa diubah di sini. Gunakan menu <b>Lupa Password</b> untuk reset.
+              ${icon('info', 14)} Password tidak bisa diubah di sini. Gunakan tombol <b>Reset Password</b> di bawah kalau user lupa password.
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="resetPasswordUser('${idUser}')" class="btn btn-warning" style="flex:1">${icon('lupapwd', 14)} Reset Password</button>
             </div>
             <div class="flex gap-2 justify-end">
               <button onclick="closeModal()" class="btn btn-dark">Batal</button>
@@ -325,8 +583,26 @@ ROUTES.pembina = el => {
       showToast('Data guru/pelatih diperbarui');
       showTab('pembina');
     };
+
+    /* ============ RESET PASSWORD USER ============================================ */
+    window.resetPasswordUser = async idUser => {
+      const u = userById(idUser);
+      if (!u) return;
+      if (!confirm(`Reset password ${u.nama_lengkap}? Password baru akan di-generate otomatis.`)) return;
+
+      const newPwd = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
+      u.password_hash = await hashPwd(newPwd);
+      persist();
+      logAction('reset_password_user', { idUser });
+
+      closeModal();
+      showAkunBerhasil(u.nama_lengkap, u.email, newPwd, u.role_sistem, u.no_wa, []);
+    };
   };
 
+  /* ================================================================
+     HAPUS PEMETAAN
+     ================================================================ */
   window.hapusPembina = id => {
     const p = PEMBINA.find(x => x.id_pembina === id);
     if (!p) return;
