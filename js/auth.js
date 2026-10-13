@@ -1,8 +1,11 @@
 /* =====================================================================
-   auth.js — Login, Register, Lupa Password
+   auth.js — Login, Register (Siswa saja), Lupa Password
+   ALUR BARU:
+   - Siswa daftar mandiri → status pending → verifikasi Pembina/Pelatih
+   - Guru/Pelatih hanya bisa dibuat oleh Admin (tidak ada register mandiri)
    ===================================================================== */
 
-/* ============ ROLE SELECTOR ============ */
+/* ============ ROLE SELECTOR (untuk login) ============ */
 function selectLoginRole(role) {
   if (!role) return;
   loginRole = role;
@@ -16,23 +19,28 @@ function selectLoginRole(role) {
   if (err) err.classList.add('hidden');
 }
 
-function selectRegRole(role) {
-  regRole = role;
-  document.querySelectorAll('#view-register .role-tab').forEach(t => t.classList.remove('active'));
-  const tab = document.getElementById('reg-tab-' + role);
-  if (tab) tab.classList.add('active');
-  document.getElementById('reg-fields-murid').classList.toggle('hidden', role !== 'murid');
-  document.getElementById('reg-fields-guru').classList.toggle('hidden', role !== 'guru');
-  if (role === 'guru') {
-    const sel = document.getElementById('reg-ekskul');
-    if (sel) sel.innerHTML = '<option value="">Pilih</option>' + EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('');
-  }
-}
-
+/* ============ VIEW NAVIGATION ============ */
 function openRegister() {
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('view-register').classList.remove('hidden');
   document.getElementById('view-forgot').classList.add('hidden');
+  // Isi pilihan ekskul
+  const list = document.getElementById('reg-ekskul-list');
+  if (list) {
+    list.innerHTML = EKSKUL.length
+      ? EKSKUL.map(e => `
+          <label class="pilih-ekskul-item">
+            <input type="checkbox" class="chk-reg-ekskul" value="${e.id_ekskul}" style="width:18px;height:18px;accent-color:#8B5CF6">
+            <div class="pilih-ekskul-info">
+              ${e.logo_url
+                ? `<img src="${e.logo_url}" class="pilih-ekskul-logo" style="object-fit:cover">`
+                : `<div class="pilih-ekskul-logo">${esc(e.nama_ekskul.slice(0,2).toUpperCase())}</div>`}
+              <span class="pilih-ekskul-name">${esc(e.nama_ekskul)}</span>
+            </div>
+          </label>
+        `).join('')
+      : '<p class="text-xs text-center py-3" style="color:var(--text-dim)">Belum ada ekskul tersedia. Hubungi Admin.</p>';
+  }
 }
 function closeRegister() {
   document.getElementById('view-register').classList.add('hidden');
@@ -54,7 +62,7 @@ function closeForgot() {
 }
 
 /* ================================================================
-   LOGIN — dengan fallback Firebase
+   LOGIN
    ================================================================ */
 async function handleLogin(ev) {
   ev.preventDefault();
@@ -76,17 +84,13 @@ async function handleLogin(ev) {
     (x.nip && x.nip === input)
   );
 
-  // 2. Jika tidak ada di lokal, coba langsung ke Firebase
+  // 2. Jika tidak ada di lokal, coba ke Firebase
   if (!userRec) {
-    // Jika input bukan format email, langsung tolak
-    if (!input.includes('@')) {
-      return fail('Email/NIS/NIP tidak terdaftar');
-    }
+    if (!input.includes('@')) return fail('Email/NIS/NIP tidak terdaftar');
     showToast('Memverifikasi ke Firebase...');
     const result = await fbLogin(input, pwd);
     if (!result.ok) return fail(result.msg);
 
-    // Auto-buat data lokal
     userRec = {
       id_user: 'u_' + result.user.uid,
       nama_lengkap: result.user.email.split('@')[0],
@@ -106,7 +110,6 @@ async function handleLogin(ev) {
     persist();
     logAction('auto_register_local', { email: userRec.email });
   } else {
-    // User ada di lokal → verifikasi password ke Firebase
     if (!userRec.email) return fail('Akun ini tidak memiliki email');
     showToast('Memverifikasi...');
     const result = await fbLogin(userRec.email, pwd);
@@ -126,15 +129,45 @@ async function handleLogin(ev) {
   if (!roleMap[loginRole].includes(userRec.role_sistem)) {
     await fbLogout();
     const labels = { murid:'Siswa', guru:'Guru / Pelatih', admin:'Admin' };
-    return fail('Akun ini bukan akun ' + labels[loginRole] + '.');
+    return fail('Akun ini bukan akun ' + labels[loginRole] + '. Pilih tab yang sesuai.');
+  }
+
+  // 4. CEK VERIFIKASI SISWA
+  if (userRec.role_sistem === 'murid' || userRec.role_sistem === 'pengurus') {
+    const anggotaAktif = ANGGOTA.filter(a =>
+      a.id_user === userRec.id_user && a.status_anggota === 'aktif'
+    );
+    const anggotaPending = ANGGOTA.filter(a =>
+      a.id_user === userRec.id_user && a.status_anggota === 'pending'
+    );
+
+    if (anggotaAktif.length === 0) {
+      await fbLogout();
+      if (anggotaPending.length > 0) {
+        const eksNama = anggotaPending.map(p => ekskulById(p.id_ekskul)?.nama_ekskul).filter(Boolean).join(', ');
+        return fail('Akun Anda masih menunggu verifikasi Pembina untuk ekskul: ' + eksNama + '. Silakan cek kembali nanti.');
+      }
+      return fail('Akun Anda belum terdaftar di ekskul manapun. Hubungi Admin.');
+    }
+  }
+
+  // 5. CEK VERIFIKASI GURU/PELATIH
+  if (userRec.role_sistem === 'guru' || userRec.role_sistem === 'pelatih') {
+    const pembinaAktif = PEMBINA.filter(p =>
+      p.id_user === userRec.id_user && p.status_akun === 'aktif'
+    );
+    if (pembinaAktif.length === 0) {
+      await fbLogout();
+      return fail('Akun Anda belum dipetakan ke ekskul. Hubungi Admin.');
+    }
   }
 
   if (!userRec.active) {
     await fbLogout();
-    return fail('Akun belum diverifikasi / dinonaktifkan');
+    return fail('Akun dinonaktifkan. Hubungi Admin.');
   }
 
-  // 4. Set current user
+  // 6. Set current user
   CURRENT_USER = Object.assign({}, userRec);
   CURRENT_USER.last_login = new Date().toISOString();
   CURRENT_USER._firebase_uid = userRec.firebase_uid;
@@ -145,7 +178,7 @@ async function handleLogin(ev) {
     persist();
   }
 
-  // 5. Cek jabatan pengurus
+  // 7. Cek jabatan pengurus
   if (userRec.role_sistem === 'murid') {
     const a = ANGGOTA.find(x =>
       x.id_user === userRec.id_user &&
@@ -171,79 +204,102 @@ async function handleLogin(ev) {
 }
 
 /* ================================================================
-   REGISTER
+   REGISTER — HANYA SISWA
    ================================================================ */
 async function handleRegister(ev) {
   ev.preventDefault();
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const nis = document.getElementById('reg-nis').value.trim();
+  const nisn = document.getElementById('reg-nisn').value.trim();
+  const kelas = document.getElementById('reg-kelas').value;
   const wa = document.getElementById('reg-wa').value.trim();
   const pwd = document.getElementById('reg-password').value;
+  const ekskulDipilih = Array.from(document.querySelectorAll('.chk-reg-ekskul:checked')).map(c => c.value);
+
   const err = document.getElementById('reg-error');
   const info = document.getElementById('reg-info');
   err.classList.add('hidden');
   info.classList.add('hidden');
   const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
 
+  // Validasi
   if (!name) return fail('Nama lengkap wajib diisi');
   if (!email) return fail('Email wajib diisi');
+  if (!kelas) return fail('Pilih kelas');
   if (!wa) return fail('No. WhatsApp wajib diisi');
   if (pwd.length < 6) return fail('Password minimal 6 karakter');
+  if (!ekskulDipilih.length) return fail('Pilih minimal 1 ekskul');
   if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar');
+  if (nis && USERS.some(u => u.nis && u.nis === nis)) return fail('NIS sudah terdaftar');
 
-  if (regRole === 'murid') {
-    const kelas = document.getElementById('reg-kelas').value;
-    if (!kelas) return fail('Pilih kelas');
-  } else {
-    const idEks = document.getElementById('reg-ekskul').value;
-    if (!idEks) return fail('Pilih ekskul yang dibina');
-  }
-
+  // Register ke Firebase
   showToast('Mendaftarkan akun...');
   const fbResult = await fbRegister(email, pwd);
   if (!fbResult.ok) return fail(fbResult.msg);
   const firebaseUid = fbResult.user.uid;
 
-  if (regRole === 'murid') {
-    const nis = document.getElementById('reg-nis').value.trim();
-    const nisn = document.getElementById('reg-nisn').value.trim();
-    const kelas = document.getElementById('reg-kelas').value;
-    USERS.push({
-      id_user: uid('u'), nama_lengkap: name, email, nis, nisn, nip: '',
-      password_hash: await hashPwd(pwd), no_wa: wa, role_sistem: 'murid',
-      kelas, foto_profil_url: '', active: true, last_login: '',
-      firebase_uid: firebaseUid, created_at: new Date().toISOString()
-    });
-    persist();
-    logAction('register_murid', { email, nis });
-    info.textContent = 'Pendaftaran berhasil! Silakan login.';
-  } else {
-    const tipe = document.getElementById('reg-tipe-guru').value;
-    const idEks = document.getElementById('reg-ekskul').value;
-    const nip = (document.getElementById('reg-nip')?.value || '').trim();
-    const newId = uid('u');
-    USERS.push({
-      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '', nip,
-      password_hash: await hashPwd(pwd), no_wa: wa, role_sistem: tipe,
-      kelas: '', foto_profil_url: '', active: false, last_login: '',
-      firebase_uid: firebaseUid, created_at: new Date().toISOString()
-    });
-    PEMBINA.push({
-      id_pembina: uid('p'), id_user: newId, id_ekskul: idEks,
-      status_akun: 'pending', created_at: new Date().toISOString()
-    });
-    persist();
-    logAction('register_guru', { email, tipe, idEks });
-    const admin = USERS.find(u => u.role_sistem === 'admin');
-    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru',
-      `${name} mendaftar sebagai ${tipe}. Menunggu verifikasi.`, 'warning', { tab: 'pembina' });
-    info.textContent = 'Pendaftaran terkirim! Tunggu verifikasi Admin.';
-  }
+  // Simpan user
+  const newId = uid('u');
+  USERS.push({
+    id_user: newId,
+    nama_lengkap: name,
+    email,
+    nis, nisn, nip: '',
+    password_hash: await hashPwd(pwd),
+    no_wa: wa,
+    role_sistem: 'murid',
+    kelas,
+    foto_profil_url: '',
+    active: true,
+    last_login: '',
+    firebase_uid: firebaseUid,
+    created_at: new Date().toISOString()
+  });
 
+  // Tambah keanggotaan ekskul dengan status pending
+  ekskulDipilih.forEach(idEks => {
+    ANGGOTA.push({
+      id_anggota: uid('a'),
+      id_user: newId,
+      id_ekskul: idEks,
+      jabatan: 'anggota',
+      status_anggota: 'pending',
+      verified_by: '',
+      verified_at: '',
+      created_at: new Date().toISOString()
+    });
+  });
+
+  persist();
+  logAction('register_siswa', { email, nis, ekskul: ekskulDipilih.length });
+
+  // Notif ke pembina/pelatih setiap ekskul
+  ekskulDipilih.forEach(idEks => {
+    const eks = ekskulById(idEks);
+    const pembinaList = pembinaOf(idEks);
+    pembinaList.forEach(p => {
+      kirimNotif(p.id_user, 'Siswa Baru Menunggu Verifikasi',
+        `${name} (${kelas}) mendaftar ke ekskul ${eks?.nama_ekskul || ''}. Silakan verifikasi.`,
+        'warning',
+        { tab: 'verifikasiSiswa', ekskul: idEks }
+      );
+    });
+  });
+
+  // Tampilkan pesan berhasil
+  info.innerHTML = `
+    <b>✅ Pendaftaran berhasil!</b><br>
+    Akun Anda akan diverifikasi oleh Pembina/Pelatih ekskul.<br>
+    Anda akan mendapat notifikasi setelah disetujui.<br>
+    <small style="display:block;margin-top:6px">Cek kembali nanti di halaman login.</small>
+  `;
   info.classList.remove('hidden');
   document.getElementById('form-register').reset();
+
   await fbLogout();
-  setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 2500);
+
+  setTimeout(() => { closeRegister(); selectLoginRole('murid'); }, 4000);
 }
 
 /* ================================================================
@@ -342,7 +398,6 @@ if (document.readyState === 'loading') {
 }
 
 window.selectLoginRole = selectLoginRole;
-window.selectRegRole = selectRegRole;
 window.openRegister = openRegister;
 window.closeRegister = closeRegister;
 window.openForgot = openForgot;
