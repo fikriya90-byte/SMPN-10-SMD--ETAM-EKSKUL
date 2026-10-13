@@ -1,5 +1,5 @@
 /* =====================================================================
-   init.js — Bootstrap dengan Firebase Session
+   init.js — Bootstrap dengan Firebase Session + Firestore Pull
    ===================================================================== */
 
 async function loadFotosFromDBInit() {
@@ -17,6 +17,11 @@ async function init() {
   await seedIfEmpty();
   applyTheme();
   initFirebase();
+
+  // Pull data dari Firestore (jika ada)
+  if (typeof fsPullAll === 'function') {
+    try { await fsPullAll(); } catch(e) { console.warn('[Init] fsPullAll error:', e); }
+  }
 
   // Cek session Firebase
   let firebaseUser = null;
