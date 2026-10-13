@@ -174,7 +174,6 @@ ROUTES.kelolaSiswa = el => {
   window.resetPwdSiswa = idUser => {
     const u = userById(idUser);
     if (!u) return;
-    if (!ids.some(id => ANGGOTA.some(a => a.id_user === idUser && a.id_ekskul === id && ids.includes(id)))) return showToast('Tidak punya akses', 'error');
     if (!confirm(`Reset password siswa "${u.nama_lengkap}"?\n\nPassword baru akan di-generate otomatis.`)) return;
     if (!confirm('Yakin ingin mereset password siswa ini?')) return;
 
@@ -211,11 +210,8 @@ ROUTES.kelolaSiswa = el => {
     const anggotaList = ANGGOTA.filter(a => a.id_user === idUser && ids.includes(a.id_ekskul));
     const ekskulNames = anggotaList.map(a => ekskulById(a.id_ekskul)?.nama_ekskul).filter(Boolean).join(', ');
 
-    // KONFIRMASI 1
     if (!confirm(`⚠️ Hapus siswa "${u.nama_lengkap}"?\n\nDari ekskul: ${ekskulNames}\n\nData akun, presensi, dan kas siswa akan dihapus PERMANEN.`)) return;
-    // KONFIRMASI 2
     if (!confirm(`Yakin ingin menghapus "${u.nama_lengkap}"?\n\nTindakan ini TIDAK BISA dibatalkan.`)) return;
-    // KONFIRMASI 3
     const ketik = prompt('Ketik "HAPUS" (huruf kapital) untuk konfirmasi final:');
     if (ketik !== 'HAPUS') return showToast('Dibatalkan', 'warning');
 
