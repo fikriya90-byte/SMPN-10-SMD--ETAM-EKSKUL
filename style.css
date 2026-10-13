@@ -235,16 +235,18 @@ h1,h2,h3,h4{font-weight:800;line-height:1.2;letter-spacing:-.02em}
   .lg\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 
-/* ============ LOGIN SCREEN ============ */
+/* ============ LOGIN SCREEN — FIXED SCROLL ============ */
 #login-screen{
   min-height:100vh;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:center;
   padding:20px;
   background:var(--bg);
   position:relative;
-  overflow:hidden;
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 .login-art-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
 .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;animation:blobFloat 22s ease-in-out infinite}
@@ -273,6 +275,7 @@ html[data-theme="light"] .grid-lines{
 
 .login-card{
   position:relative;z-index:10;width:100%;
+  margin:auto 0;
   display:grid;grid-template-columns:1fr;
   border-radius:22px;overflow:hidden;
   background:var(--glass-bg);
