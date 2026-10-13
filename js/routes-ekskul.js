@@ -1,4 +1,4 @@
-/* routes-ekskul.js — Manajemen Ekskul + Multi Jadwal Rutin */
+/* routes-ekskul.js — Manajemen Ekskul + Multi Jadwal Rutin + Auto Hapus Firestore */
 
 function canEditEkskul(idEkskul) {
   if (!CURRENT_USER || !idEkskul) return false;
@@ -160,7 +160,6 @@ function openEditEkskulModal(idEkskul) {
             <div class="sm:col-span-2">
               <label class="field-label">Jadwal Rutin (satu per baris)</label>
               <textarea id="ed-jadwal" class="field-input" rows="4">${esc(e.jadwal_rutin || '')}</textarea>
-              <p class="text-xs" style="color:var(--text-dim);margin-top:6px">Bisa lebih dari 1 jadwal. Tulis satu per baris.</p>
             </div>
             <div><label class="field-label">Tempat</label><input id="ed-tempat" class="field-input" value="${esc(e.tempat || '')}"></div>
             <div><label class="field-label">Tahun Ajaran</label><input id="ed-tahun" class="field-input" value="${esc(e.tahun_ajaran || '')}"></div>
@@ -214,7 +213,7 @@ function openEditLogoModal(idEkskul) {
           <div>
             <label class="field-label">Upload Logo Baru</label>
             <input id="logo-file" type="file" accept="image/*" class="field-input" style="padding:6px">
-            <p class="text-xs" style="color:var(--text-dim);margin-top:6px">JPG, PNG, WEBP. Maks 5MB. Dikompres ke 512×512.</p>
+            <p class="text-xs" style="color:var(--text-dim);margin-top:6px">JPG, PNG, WEBP. Maks 5MB.</p>
           </div>
           <div id="logo-preview" class="hidden text-center">
             <p class="field-label" style="text-align:left">Preview</p>
@@ -272,26 +271,63 @@ function hapusLogoEkskulHandler(idEkskul) {
   showTab('ekskul');
 }
 
+/* =====================================================================
+   HAPUS EKSKUL — BERSIH SEMUA (Firestore + localStorage)
+   ===================================================================== */
 function delEkskulHandler(idEkskul) {
   if (!canDeleteEkskul()) return showToast('Hanya admin', 'error');
   const e = ekskulById(idEkskul);
   if (!e) return;
-  if (!confirm(`Hapus ekskul "${e.nama_ekskul}" beserta SEMUA data terkait?`)) return;
-  if (!confirm('Yakin? Tidak bisa dibatalkan.')) return;
+
+  // Konfirmasi 2x
+  if (!confirm(`⚠️ Hapus ekskul "${e.nama_ekskul}"?\n\nSEMUA data terkait akan dihapus:\n• Data ekskul\n• Anggota & keanggotaan\n• Jurnal & presensi\n• Kas & pembayaran\n• Foto & konten\n• Struktur & seksi\n\nTindakan ini TIDAK BISA dibatalkan.`)) return;
+  if (!confirm(`Yakin menghapus "${e.nama_ekskul}"?\n\nKetik OK untuk lanjut.`)) return;
+
+  const namaEkskul = e.nama_ekskul;
+  const idJurnalHapus = JURNAL.filter(j => j.id_ekskul === idEkskul).map(j => j.id_pertemuan);
+  const idAnggotaHapus = ANGGOTA.filter(a => a.id_ekskul === idEkskul).map(a => a.id_anggota);
+
+  // ============ 1. HAPUS DARI FIRESTORE ============
+  if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+    try {
+      const db = firebase.firestore();
+      db.collection('etam_ekskul').doc(idEkskul).delete().catch(err => console.warn('FS del ekskul:', err));
+
+      // Hapus anggota ekskul ini dari Firestore
+      ANGGOTA.filter(a => a.id_ekskul === idEkskul).forEach(a => {
+        db.collection('etam_anggota').doc(a.id_anggota).delete().catch(() => {});
+      });
+
+      // Hapus pembina ekskul ini dari Firestore
+      PEMBINA.filter(p => p.id_ekskul === idEkskul).forEach(p => {
+        db.collection('etam_pembina').doc(p.id_pembina).delete().catch(() => {});
+      });
+
+      console.log('[FS] Ekskul & relasi dihapus dari Firestore:', idEkskul);
+    } catch(err) {
+      console.warn('[FS] Gagal hapus di Firestore:', err);
+    }
+  }
+
+  // ============ 2. HAPUS DARI LOCALSTORAGE ============
   EKSKUL = EKSKUL.filter(x => x.id_ekskul !== idEkskul);
   PEMBINA = PEMBINA.filter(p => p.id_ekskul !== idEkskul);
   ANGGOTA = ANGGOTA.filter(a => a.id_ekskul !== idEkskul);
-  const jIds = JURNAL.filter(j => j.id_ekskul === idEkskul).map(j => j.id_pertemuan);
   JURNAL = JURNAL.filter(j => j.id_ekskul !== idEkskul);
-  PRESENSI = PRESENSI.filter(p => !jIds.includes(p.id_pertemuan));
+  PRESENSI = PRESENSI.filter(p => !idJurnalHapus.includes(p.id_pertemuan));
   KAS_BAYAR = KAS_BAYAR.filter(b => b.id_ekskul !== idEkskul);
   LAPORAN_FOTO = LAPORAN_FOTO.filter(f => f.id_ekskul !== idEkskul);
   KONTEN = KONTEN.filter(k => k.id_ekskul !== idEkskul);
+  PENGUMUMAN = PENGUMUMAN.filter(p => !(p.target === 'ekskul' && p.id_target === idEkskul));
   delete KAS_SETTING[idEkskul];
   delete STRUKTUR_EKSKUL[idEkskul];
+  delete STRUKTUR_ARSIP[idEkskul];
+  delete TEMPLATE_PENILAIAN[idEkskul];
+  delete PENILAIAN[idEkskul];
+
   persist();
-  logAction('del_ekskul', { idEkskul });
-  showToast('Ekskul dihapus');
+  logAction('del_ekskul', { idEkskul, nama: namaEkskul, anggotaHapus: idAnggotaHapus.length });
+  showToast('Ekskul "' + namaEkskul + '" dihapus bersih');
   showTab('ekskul');
 }
 
