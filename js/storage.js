@@ -1,4 +1,4 @@
-/* storage.js — DB Layer + Helper Struktur, Arsip, Koordinator, Seksi */
+/* storage.js — DB Layer + Helper Struktur, Arsip, Koordinator, Seksi, Penilaian */
 
 const DB = {
   get(k, d) { try { const s = localStorage.getItem('etam_' + k); return s ? JSON.parse(s) : (d ?? null); } catch (e) { return d ?? null; } },
@@ -16,6 +16,8 @@ function persist() {
   DB.set('struktur_arsip', STRUKTUR_ARSIP);
   DB.set('arsip_siswa', ARSIP_SISWA);
   DB.set('tahun_ajaran_aktif', TAHUN_AJARAN_AKTIF);
+  DB.set('template_penilaian', TEMPLATE_PENILAIAN);
+  DB.set('penilaian', PENILAIAN);
 }
 
 const FotoDB = (() => {
@@ -111,7 +113,7 @@ function resetStrukturUntukTahunBaru(idEkskul, tahunBaru) {
   return STRUKTUR_EKSKUL[idEkskul][tahunBaru];
 }
 
-/* ============ SEKSI / DIVISI CUSTOM ============ */
+/* ============ SEKSI / DIVISI ============ */
 function getSeksiList(idEkskul, tahun) {
   const s = getStrukturTahun(idEkskul, tahun);
   return s.seksi || [];
@@ -264,6 +266,8 @@ async function seedIfEmpty() {
   STRUKTUR_ARSIP = DB.get('struktur_arsip', {}) || {};
   ARSIP_SISWA = DB.get('arsip_siswa', []) || [];
   TAHUN_AJARAN_AKTIF = DB.get('tahun_ajaran_aktif', '2026/2027');
+  TEMPLATE_PENILAIAN = DB.get('template_penilaian', {}) || {};
+  PENILAIAN = DB.get('penilaian', {}) || {};
 }
 
 window.kirimNotif = kirimNotif;
