@@ -19,6 +19,8 @@ const NAV = {
     { key:'lupapwd', label:'Lupa Pwd', icon:'lupapwd', group:'Lainnya' },
     { key:'reset', label:'Reset & Arsip', icon:'refresh', group:'Lainnya' },
     { key:'setting', label:'Setting', icon:'setting', group:'Lainnya' },
+    { key:'profil', label:'Profil Saya', icon:'profil', group:'Lainnya' },
+    { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
   guru: [
@@ -40,6 +42,7 @@ const NAV = {
     { key:'statistik', label:'Statistik', icon:'statistik', group:'Laporan' },
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
     { key:'reset', label:'Reset & Arsip', icon:'refresh', group:'Lainnya' },
+    { key:'profil', label:'Profil Saya', icon:'profil', group:'Lainnya' },
     { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
@@ -62,6 +65,7 @@ const NAV = {
     { key:'statistik', label:'Statistik', icon:'statistik', group:'Laporan' },
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
     { key:'reset', label:'Reset & Arsip', icon:'refresh', group:'Lainnya' },
+    { key:'profil', label:'Profil Saya', icon:'profil', group:'Lainnya' },
     { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
@@ -80,6 +84,7 @@ const NAV = {
     { key:'laporan', label:'Laporan', icon:'laporan', group:'Laporan' },
     { key:'statistik', label:'Statistik', icon:'statistik', group:'Laporan' },
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
+    { key:'profil', label:'Profil Saya', icon:'profil', group:'Lainnya' },
     { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
