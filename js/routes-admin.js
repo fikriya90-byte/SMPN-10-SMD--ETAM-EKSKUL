@@ -1,4 +1,6 @@
-/* routes-admin.js — Dashboard admin, verifikasi, rekap, log, setting, peta */
+/* =====================================================================
+   routes-admin.js — Dashboard, Verifikasi, Rekap, Log, Lupa Pwd, Setting, Peta
+   ===================================================================== */
 
 ROUTES.dashboard = el => {
   const r = CURRENT_USER.role_sistem;
@@ -20,7 +22,12 @@ function renderAdminDash(el) {
     </div>
     <div class="card"><div class="card-header"><h3 class="font-display text-base">Ringkasan per Ekskul</h3></div>
     <div class="overflow-x-auto custom-scrollbar"><table><thead><tr><th>Ekskul</th><th style="text-align:center;">Anggota</th><th style="text-align:center;">Pertemuan</th><th style="text-align:center;">Kas</th></tr></thead>
-    <tbody>${EKSKUL.map(e => `<tr><td class="font-semibold">${esc(e.nama_ekskul)}</td><td class="text-center">${anggotaAktifOf(e.id_ekskul).length}</td><td class="text-center">${getPertemuanClosed(e.id_ekskul).length}</td><td class="text-center">${KAS_BAYAR.filter(b => b.id_ekskul === e.id_ekskul).length}</td></tr>`).join('') || '<tr><td colspan="4" class="text-center py-4" style="color:var(--text-dim)">Belum ada</td></tr>'}</tbody></table></div></div>`;
+    <tbody>${EKSKUL.map(e => `<tr>
+      <td class="font-semibold">${esc(e.nama_ekskul)}</td>
+      <td class="text-center">${anggotaAktifOf(e.id_ekskul).length}</td>
+      <td class="text-center">${getPertemuanClosed(e.id_ekskul).length}</td>
+      <td class="text-center">${KAS_BAYAR.filter(b => b.id_ekskul === e.id_ekskul).length}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="text-center py-4" style="color:var(--text-dim)">Belum ada</td></tr>'}</tbody></table></div></div>`;
 }
 
 ROUTES.verifikasi = el => {
@@ -28,19 +35,34 @@ ROUTES.verifikasi = el => {
   el.innerHTML = `
     <div class="card mb-4"><div class="card-header"><h2 class="font-display text-base">Verifikasi Guru/Pelatih</h2><span class="chip">${pend.length}</span></div>
     <div class="overflow-x-auto custom-scrollbar"><table><thead><tr><th>Nama</th><th>Email</th><th>Ekskul</th><th style="text-align:center;">Aksi</th></tr></thead>
-    <tbody>${pend.length ? pend.map(p => { const u = userById(p.id_user), e = ekskulById(p.id_ekskul); if (!u || !e) return ''; return `<tr><td class="font-semibold">${esc(u.nama_lengkap)}</td><td style="color:var(--text-muted)">${esc(u.email)}</td><td>${esc(e.nama_ekskul)}</td><td class="text-center"><div class="flex gap-1 justify-center"><button onclick="approvePembina('${p.id_pembina}',true)" class="btn btn-success" style="padding:4px 10px;font-size:12px;">Setujui</button><button onclick="approvePembina('${p.id_pembina}',false)" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">Tolak</button></div></td></tr>`; }).join('') : '<tr><td colspan="4" class="text-center py-4" style="color:var(--text-dim)">Tidak ada pending</td></tr>'}</tbody></table></div></div>
-    <div class="card"><div class="card-header"><h3 class="font-display text-base">Pemetaan Pembina</h3><button onclick="openMapPembinaModal()" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">${icon('plus', 12)} Petakan</button></div>
+    <tbody>${pend.length ? pend.map(p => {
+      const u = userById(p.id_user), e = ekskulById(p.id_ekskul);
+      if (!u || !e) return '';
+      return `<tr><td class="font-semibold">${esc(u.nama_lengkap)}</td>
+        <td style="color:var(--text-muted)">${esc(u.email)}</td>
+        <td>${esc(e.nama_ekskul)}</td>
+        <td class="text-center"><div class="flex gap-1 justify-center">
+          <button onclick="approvePembina('${p.id_pembina}',true)" class="btn btn-success" style="padding:4px 10px;font-size:12px;">Setujui</button>
+          <button onclick="approvePembina('${p.id_pembina}',false)" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">Tolak</button>
+        </div></td></tr>`;
+    }).join('') : '<tr><td colspan="4" class="text-center py-4" style="color:var(--text-dim)">Tidak ada pending</td></tr>'}</tbody></table></div></div>
+    <div class="card"><div class="card-header"><h3 class="font-display text-base">Pemetaan Pembina</h3>
+      <button onclick="openMapPembinaModal()" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">+ Petakan</button></div>
     <div class="overflow-x-auto custom-scrollbar"><table><thead><tr><th>Nama</th><th>Ekskul</th><th>Status</th><th style="text-align:center;">Aksi</th></tr></thead>
-    <tbody>${PEMBINA.map(p => { const u = userById(p.id_user), e = ekskulById(p.id_ekskul); if (!u || !e) return ''; return `<tr><td class="font-semibold">${esc(u.nama_lengkap)}</td><td>${esc(e.nama_ekskul)}</td><td><span class="chip ${p.status_akun === 'aktif' ? 'chip-ok' : 'chip-warn'}">${esc(p.status_akun)}</span></td><td class="text-center"><button onclick="unmapPembina('${p.id_pembina}')" class="btn btn-danger" style="padding:4px 10px;font-size:11.5px;">Hapus</button></td></tr>`; }).join('')}</tbody></table></div></div>`;
+    <tbody>${PEMBINA.map(p => {
+      const u = userById(p.id_user), e = ekskulById(p.id_ekskul);
+      if (!u || !e) return '';
+      return `<tr><td class="font-semibold">${esc(u.nama_lengkap)}</td><td>${esc(e.nama_ekskul)}</td>
+        <td><span class="chip ${p.status_akun === 'aktif' ? 'chip-ok' : 'chip-warn'}">${esc(p.status_akun)}</span></td>
+        <td class="text-center"><button onclick="unmapPembina('${p.id_pembina}')" class="btn btn-danger" style="padding:4px 10px;font-size:11.5px;">Hapus</button></td></tr>`;
+    }).join('')}</tbody></table></div></div>`;
 
   window.approvePembina = (id, ok) => {
     const p = PEMBINA.find(x => x.id_pembina === id);
     if (!p) return;
     if (ok) { p.status_akun = 'aktif'; const u = userById(p.id_user); if (u) u.active = true; showToast('Disetujui'); }
     else { PEMBINA = PEMBINA.filter(x => x.id_pembina !== id); const u = userById(p.id_user); if (u) u.active = false; showToast('Ditolak', 'warning'); }
-    persist();
-    logAction('approve_pembina', { id, ok });
-    showTab('verifikasi');
+    persist(); logAction('approve_pembina', { id, ok }); showTab('verifikasi');
   };
   window.unmapPembina = id => { if (!confirm('Hapus?')) return; PEMBINA = PEMBINA.filter(x => x.id_pembina !== id); persist(); showTab('verifikasi'); };
 };
@@ -52,7 +74,8 @@ window.openMapPembinaModal = () => {
     <div class="card-body space-y-3">
       <div><label class="field-label">User</label><select id="map-user" class="field-input">${g.map(u => `<option value="${u.id_user}">${esc(u.nama_lengkap)}</option>`).join('') || '<option value="">-</option>'}</select></div>
       <div><label class="field-label">Ekskul</label><select id="map-ekskul" class="field-input">${EKSKUL.map(e => `<option value="${e.id_ekskul}">${esc(e.nama_ekskul)}</option>`).join('')}</select></div>
-      <div class="flex gap-2"><button onclick="saveMapPembina()" class="btn btn-primary flex-1">Simpan</button><button onclick="closeModal()" class="btn btn-dark flex-1">Batal</button></div></div></div></div>`;
+      <div class="flex gap-2"><button onclick="saveMapPembina()" class="btn btn-primary flex-1">Simpan</button>
+      <button onclick="closeModal()" class="btn btn-dark flex-1">Batal</button></div></div></div></div>`;
 };
 window.saveMapPembina = () => {
   const iu = $('#map-user').value, ie = $('#map-ekskul').value;
@@ -112,6 +135,9 @@ ROUTES.lupapwd = el => {
   };
 };
 
+/* =====================================================================
+   SETTING — DIPERBAIKI: NIP tersimpan & tertaut ke laporan
+   ===================================================================== */
 ROUTES.setting = el => {
   el.innerHTML = `
     <!-- KEPALA SEKOLAH -->
@@ -125,14 +151,18 @@ ROUTES.setting = el => {
         <div>
           <label class="field-label">NIP (opsional)</label>
           <input id="ks-nip" class="field-input" value="${esc(APP_SETTINGS.kepala_nip || '')}" placeholder="Kosongkan jika tidak ada NIP">
-          <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika tidak ada NIP</p>
         </div>
         <div>
           <label class="field-label">No. WhatsApp (opsional)</label>
           <input id="ks-wa" class="field-input" value="${esc(APP_SETTINGS.kepala_wa || '')}" placeholder="08xx">
         </div>
         <div class="sm:col-span-2 flex justify-end">
-          <button onclick="saveKepalaSekolah()" class="btn btn-primary">${icon('check', 14)} Simpan Kepala Sekolah</button>
+          <button type="button" onclick="saveKepalaSekolah()" class="btn btn-primary">${icon('check', 14)} Simpan Kepala Sekolah</button>
+        </div>
+        <div class="sm:col-span-2">
+          <div class="alert alert-info" style="font-size:11px">
+            <b>Cek Nilai Tersimpan:</b> Nama="${esc(APP_SETTINGS.kepala_upt || '-')}" · NIP="${esc(APP_SETTINGS.kepala_nip || '-')}"
+          </div>
         </div>
       </div>
     </div>
@@ -143,16 +173,15 @@ ROUTES.setting = el => {
       <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="sm:col-span-2">
           <label class="field-label">Nama Lengkap & Gelar</label>
-          <input id="k-nama" class="field-input" value="${esc(APP_SETTINGS.koordinator_ekskul || '')}" placeholder="cth: Muhammad Ibnu Syamwardana, S.Pd.">
+          <input id="k-nama" class="field-input" value="${esc(APP_SETTINGS.koordinator_ekskul || '')}">
         </div>
         <div>
           <label class="field-label">NIP (opsional)</label>
-          <input id="k-nip" class="field-input" value="${esc(APP_SETTINGS.koordinator_nip || '')}" placeholder="Kosongkan jika tidak ada NIP">
-          <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika tidak ada NIP</p>
+          <input id="k-nip" class="field-input" value="${esc(APP_SETTINGS.koordinator_nip || '')}">
         </div>
         <div>
           <label class="field-label">No. WhatsApp (opsional)</label>
-          <input id="k-wa" class="field-input" value="${esc(APP_SETTINGS.koordinator_wa || '')}" placeholder="08xx">
+          <input id="k-wa" class="field-input" value="${esc(APP_SETTINGS.koordinator_wa || '')}">
         </div>
         <div class="sm:col-span-2">
           <label class="field-label">Foto Koordinator (opsional)</label>
@@ -161,11 +190,11 @@ ROUTES.setting = el => {
         ${APP_SETTINGS.koordinator_foto ? `
           <div class="sm:col-span-2 text-center">
             <img src="${APP_SETTINGS.koordinator_foto}" style="max-height:120px;border-radius:12px;margin:0 auto">
-            <button onclick="hapusFotoKoordinator()" class="btn btn-danger" style="margin-top:8px;padding:5px 10px;font-size:12px;">Hapus Foto</button>
+            <button type="button" onclick="hapusFotoKoordinator()" class="btn btn-danger" style="margin-top:8px;padding:5px 10px;font-size:12px;">Hapus Foto</button>
           </div>
         ` : ''}
         <div class="sm:col-span-2 flex justify-end">
-          <button onclick="saveKoordinator()" class="btn btn-primary">${icon('check', 14)} Simpan Koordinator</button>
+          <button type="button" onclick="saveKoordinator()" class="btn btn-primary">${icon('check', 14)} Simpan Koordinator</button>
         </div>
       </div>
     </div>
@@ -178,7 +207,7 @@ ROUTES.setting = el => {
         <div><label class="field-label">Dinas</label><input id="s-dinas" class="field-input" value="${esc(APP_SETTINGS.dinas || '')}"></div>
         <div><label class="field-label">Kota</label><input id="s-kota" class="field-input" value="${esc(APP_SETTINGS.kota || '')}"></div>
         <div class="sm:col-span-2"><label class="field-label">Alamat</label><input id="s-alamat" class="field-input" value="${esc(APP_SETTINGS.alamat_sekolah || '')}"></div>
-        <div class="sm:col-span-2 flex justify-end"><button onclick="saveSettings()" class="btn btn-primary">${icon('check', 14)} Simpan Identitas</button></div>
+        <div class="sm:col-span-2 flex justify-end"><button type="button" onclick="saveSettings()" class="btn btn-primary">${icon('check', 14)} Simpan Identitas</button></div>
       </div>
     </div>
 
@@ -186,65 +215,95 @@ ROUTES.setting = el => {
     <div class="card mb-4">
       <div class="card-header"><h3 class="font-display text-base">${icon('download', 18)} Backup & Restore</h3></div>
       <div class="card-body flex flex-wrap gap-2">
-        <button onclick="backupAll()" class="btn btn-primary">${icon('download', 14)} Backup JSON</button>
+        <button type="button" onclick="backupAll()" class="btn btn-primary">${icon('download', 14)} Backup JSON</button>
         <label class="btn btn-dark cursor-pointer">${icon('upload', 14)} Restore<input type="file" accept=".json" onchange="restoreAll(event)" style="display:none"></label>
-        <button onclick="hapusFotoLama()" class="btn btn-danger">${icon('trash', 14)} Hapus Foto Lama (>1 bulan)</button>
+        <button type="button" onclick="hapusFotoLama()" class="btn btn-danger">${icon('trash', 14)} Hapus Foto Lama</button>
       </div>
     </div>
 
     <!-- ZONA BAHAYA -->
     <div class="card">
       <div class="card-header"><h3 class="font-display text-base" style="color:#F87171">${icon('alert', 18)} Zona Bahaya</h3></div>
-      <div class="card-body"><button onclick="resetAll()" class="btn btn-danger">${icon('alert', 14)} Reset Semua Data</button></div>
+      <div class="card-body"><button type="button" onclick="resetAll()" class="btn btn-danger">${icon('alert', 14)} Reset Semua Data</button></div>
     </div>`;
 
+  /* ============ SIMPAN KEPALA SEKOLAH ============ */
   window.saveKepalaSekolah = () => {
-    APP_SETTINGS.kepala_upt = $('#ks-nama').value.trim();
-    APP_SETTINGS.kepala_nip = $('#ks-nip').value.trim();
-    APP_SETTINGS.kepala_wa = $('#ks-wa').value.trim();
-    persist();
-    logAction('save_kepala_sekolah', {});
-    showToast('Data Kepala Sekolah disimpan');
+    const nama = ($('#ks-nama')?.value || '').trim();
+    const nip  = ($('#ks-nip')?.value || '').trim();
+    const wa   = ($('#ks-wa')?.value || '').trim();
+
+    if (!nama) {
+      showToast('Nama Kepala Sekolah wajib diisi', 'warning');
+      return;
+    }
+
+    // Update objek global
+    APP_SETTINGS.kepala_upt = nama;
+    APP_SETTINGS.kepala_nip = nip;
+    APP_SETTINGS.kepala_wa  = wa;
+
+    // Simpan LANGSUNG ke localStorage
+    try {
+      localStorage.setItem('etam_settings', JSON.stringify(APP_SETTINGS));
+    } catch(e) {
+      console.error('Gagal simpan:', e);
+      showToast('Gagal simpan ke storage', 'error');
+      return;
+    }
+
+    logAction('save_kepala_sekolah', { nama, nip });
+    showToast('Tersimpan — NIP: ' + (nip || 'kosong'));
+
+    setTimeout(() => { showTab('setting'); }, 400);
   };
 
+  /* ============ SIMPAN KOORDINATOR ============ */
   window.saveKoordinator = async () => {
-    APP_SETTINGS.koordinator_ekskul = $('#k-nama').value.trim();
-    APP_SETTINGS.koordinator_nip = $('#k-nip').value.trim();
-    APP_SETTINGS.koordinator_wa = $('#k-wa').value.trim();
-    const f = $('#k-foto').files[0];
+    APP_SETTINGS.koordinator_ekskul = ($('#k-nama')?.value || '').trim();
+    APP_SETTINGS.koordinator_nip    = ($('#k-nip')?.value || '').trim();
+    APP_SETTINGS.koordinator_wa     = ($('#k-wa')?.value || '').trim();
+    const f = $('#k-foto')?.files?.[0];
     if (f) {
       try { APP_SETTINGS.koordinator_foto = await compressImage(f, 512, 0.85); } catch (err) { showToast('Gagal proses foto', 'error'); }
     }
-    persist();
+    try { localStorage.setItem('etam_settings', JSON.stringify(APP_SETTINGS)); } catch(e) {}
     logAction('save_koordinator', {});
-    showToast('Data Koordinator disimpan');
-    showTab('setting');
+    showToast('Tersimpan');
+    setTimeout(() => { showTab('setting'); }, 400);
   };
 
   window.hapusFotoKoordinator = () => {
     if (!confirm('Hapus foto koordinator?')) return;
     APP_SETTINGS.koordinator_foto = '';
-    persist();
+    try { localStorage.setItem('etam_settings', JSON.stringify(APP_SETTINGS)); } catch(e) {}
     showTab('setting');
     showToast('Foto dihapus', 'warning');
   };
 
+  /* ============ SIMPAN IDENTITAS SEKOLAH ============ */
   window.saveSettings = () => {
-    APP_SETTINGS.school_name = $('#s-school').value;
-    APP_SETTINGS.dinas = $('#s-dinas').value;
-    APP_SETTINGS.kota = $('#s-kota').value;
-    APP_SETTINGS.alamat_sekolah = $('#s-alamat').value;
-    persist(); logAction('save_settings', {}); showToast('Disimpan');
+    APP_SETTINGS.school_name = $('#s-school')?.value || '';
+    APP_SETTINGS.dinas = $('#s-dinas')?.value || '';
+    APP_SETTINGS.kota = $('#s-kota')?.value || '';
+    APP_SETTINGS.alamat_sekolah = $('#s-alamat')?.value || '';
+    try { localStorage.setItem('etam_settings', JSON.stringify(APP_SETTINGS)); } catch(e) {}
+    logAction('save_settings', {});
+    showToast('Disimpan');
   };
 
+  /* ============ HAPUS FOTO LAMA ============ */
   window.hapusFotoLama = () => {
     if (!confirm('Hapus foto lebih dari 30 hari?')) return;
     const batas = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const sebelum = LAPORAN_FOTO.length;
     LAPORAN_FOTO = LAPORAN_FOTO.filter(f => new Date(f.waktu).getTime() > batas);
-    persist(); showTab('setting'); showToast('Hapus ' + (sebelum - LAPORAN_FOTO.length) + ' foto');
+    persist();
+    showTab('setting');
+    showToast('Hapus ' + (sebelum - LAPORAN_FOTO.length) + ' foto');
   };
 
+  /* ============ RESET ALL ============ */
   window.resetAll = async () => {
     if (!confirm('Reset SEMUA data?')) return;
     if (!confirm('Yakin?')) return;
@@ -253,24 +312,39 @@ ROUTES.setting = el => {
     location.reload();
   };
 };
+
+/* ============ BACKUP / RESTORE ============ */
 window.backupAll = () => {
-  const data = { app: 'ETAM', version: 6, exported_at: new Date().toISOString(), users: USERS, ekskul: EKSKUL, pembina: PEMBINA, anggota: ANGGOTA, jurnal: JURNAL, presensi: PRESENSI, kas_setting: KAS_SETTING, kas_bayar: KAS_BAYAR, struktur: STRUKTUR_EKSKUL, struktur_arsip: STRUKTUR_ARSIP, arsip_siswa: ARSIP_SISWA, foto: LAPORAN_FOTO, konten: KONTEN, pengumuman: PENGUMUMAN, settings: APP_SETTINGS };
+  const data = {
+    app: 'ETAM', version: 6, exported_at: new Date().toISOString(),
+    users: USERS, ekskul: EKSKUL, pembina: PEMBINA, anggota: ANGGOTA,
+    jurnal: JURNAL, presensi: PRESENSI, kas_setting: KAS_SETTING,
+    kas_bayar: KAS_BAYAR, struktur: STRUKTUR_EKSKUL,
+    struktur_arsip: STRUKTUR_ARSIP, arsip_siswa: ARSIP_SISWA,
+    foto: LAPORAN_FOTO, konten: KONTEN, pengumuman: PENGUMUMAN,
+    settings: APP_SETTINGS
+  };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `ETAM_Backup_${todayStr()}.json`; a.click();
+  const a = document.createElement('a');
+  a.href = url; a.download = `ETAM_Backup_${todayStr()}.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('Backup diunduh');
 };
+
 window.restoreAll = async ev => {
-  const f = ev.target.files[0]; if (!f) return;
+  const f = ev.target.files[0];
+  if (!f) return;
   try {
     const d = JSON.parse(await f.text());
-    ['users','ekskul','pembina','anggota','jurnal','presensi','kas_setting','kas_bayar','struktur','struktur_arsip','arsip_siswa','foto','konten','pengumuman','settings'].forEach(k => { if (d[k]) DB.set(k, d[k]); });
+    ['users','ekskul','pembina','anggota','jurnal','presensi','kas_setting','kas_bayar','struktur','struktur_arsip','arsip_siswa','foto','konten','pengumuman','settings']
+      .forEach(k => { if (d[k]) DB.set(k, d[k]); });
     showToast('Direstore. Reload...');
     setTimeout(() => location.reload(), 1000);
   } catch(e) { showToast('File tidak valid', 'error'); }
 };
 
+/* ============ PETA ============ */
 ROUTES.peta = el => {
   el.innerHTML = `<div class="card"><div class="card-header"><h2 class="font-display text-base">Peta Sebaran Kegiatan</h2></div>
     <div class="card-body"><div id="map-container" style="height:520px;border-radius:12px;overflow:hidden"></div></div></div>`;
