@@ -179,4 +179,15 @@ ROUTES.peta = el => {
   el.innerHTML = `<div class="card"><div class="card-header"><h2 class="font-display text-base">Peta Sebaran Kegiatan</h2></div>
     <div class="card-body"><div id="map-container" style="height:520px;border-radius:12px;overflow:hidden"></div></div></div>`;
   setTimeout(() => {
-    if (typeof L === 'undefined') { $('#map-container').innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-dim)
+    if (typeof L === 'undefined') { $('#map-container').innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-dim)">Peta butuh koneksi internet.</p>'; return; }
+    const map = L.map('map-container').setView([-0.5021, 117.1536], 12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+    const fotos = LAPORAN_FOTO.filter(f => f.lat && f.lng);
+    if (!fotos.length) return showToast('Belum ada foto berkoordinat', 'warning');
+    fotos.forEach(f => {
+      const u = userById(f.id_user), e = ekskulById(f.id_ekskul);
+      L.marker([f.lat, f.lng]).addTo(map).bindPopup(`<div style="font-family:sans-serif;font-size:12px;max-width:220px"><b>${esc(u ? u.nama_lengkap : 'User')}</b><br><span style="color:#666">${esc(e ? e.nama_ekskul : '-')} · ${fmtDateTime(f.waktu)}</span><br>${f.file_url ? `<img src="${f.file_url}" style="width:100%;border-radius:8px;margin-top:6px">` : ''}</div>`);
+    });
+    if (fotos.length) map.fitBounds(L.latLngBounds(fotos.map(f => [f.lat, f.lng])), { padding: [30, 30], maxZoom: 16 });
+  }, 100);
+};
