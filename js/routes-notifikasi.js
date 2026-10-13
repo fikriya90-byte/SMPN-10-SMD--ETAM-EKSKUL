@@ -28,65 +28,29 @@ ROUTES.notifikasi = el => {
       </div>
     </div>`;
 
-  window.bacaNotif = id => {
-    const n = NOTIFIKASI.find(x => x.id_notif === id);
-    if (!n || n.dibaca) return;
-    n.dibaca = true;
-    DB.set('notifikasi', NOTIFIKASI);
-    updateNotifBadge();
-    showTab('notifikasi');
-  };
-  window.hapusNotif = id => {
-    NOTIFIKASI = NOTIFIKASI.filter(n => n.id_notif !== id);
-    DB.set('notifikasi', NOTIFIKASI);
-    updateNotifBadge();
-    showTab('notifikasi');
-  };
-  window.tandaiSemuaDibaca = () => {
-    NOTIFIKASI.forEach(n => { if (n.id_user === CURRENT_USER.id_user) n.dibaca = true; });
-    DB.set('notifikasi', NOTIFIKASI);
-    updateNotifBadge();
-    showTab('notifikasi');
-    showToast('Semua ditandai dibaca');
-  };
-  window.hapusSemuaNotif = () => {
-    if (!confirm('Hapus semua notifikasi?')) return;
-    NOTIFIKASI = NOTIFIKASI.filter(n => n.id_user !== CURRENT_USER.id_user);
-    DB.set('notifikasi', NOTIFIKASI);
-    updateNotifBadge();
-    showTab('notifikasi');
-    showToast('Dihapus', 'warning');
-  };
+  window.bacaNotif = id => { const n = NOTIFIKASI.find(x => x.id_notif === id); if (!n || n.dibaca) return; n.dibaca = true; DB.set('notifikasi', NOTIFIKASI); updateNotifBadge(); showTab('notifikasi'); };
+  window.hapusNotif = id => { NOTIFIKASI = NOTIFIKASI.filter(n => n.id_notif !== id); DB.set('notifikasi', NOTIFIKASI); updateNotifBadge(); showTab('notifikasi'); };
+  window.tandaiSemuaDibaca = () => { NOTIFIKASI.forEach(n => { if (n.id_user === CURRENT_USER.id_user) n.dibaca = true; }); DB.set('notifikasi', NOTIFIKASI); updateNotifBadge(); showTab('notifikasi'); showToast('Semua ditandai dibaca'); };
+  window.hapusSemuaNotif = () => { if (!confirm('Hapus semua notifikasi?')) return; NOTIFIKASI = NOTIFIKASI.filter(n => n.id_user !== CURRENT_USER.id_user); DB.set('notifikasi', NOTIFIKASI); updateNotifBadge(); showTab('notifikasi'); showToast('Dihapus', 'warning'); };
 };
 
 ROUTES.pengumuman = el => {
   const r = CURRENT_USER.role_sistem;
   const canPost = r === 'admin' || r === 'guru' || r === 'pelatih' || r === 'pengurus';
   let list = PENGUMUMAN.slice().reverse();
-  if (r === 'murid') {
-    const myIds = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user).map(a => a.id_ekskul);
-    list = list.filter(p => p.target === 'all' || (p.target === 'ekskul' && myIds.includes(p.id_target)));
-  } else if (r === 'guru' || r === 'pelatih') {
-    const myIds = userEkskulIds(CURRENT_USER.id_user);
-    list = list.filter(p => p.target === 'all' || (p.target === 'ekskul' && myIds.includes(p.id_target)) || p.dibuat_oleh === CURRENT_USER.id_user);
-  } else if (r === 'pengurus') {
-    list = list.filter(p => p.target === 'all' || p.id_target === CURRENT_EKSKUL_CTX || p.dibuat_oleh === CURRENT_USER.id_user);
-  }
+  if (r === 'murid') { const myIds = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user).map(a => a.id_ekskul); list = list.filter(p => p.target === 'all' || (p.target === 'ekskul' && myIds.includes(p.id_target))); }
+  else if (r === 'guru' || r === 'pelatih') { const myIds = userEkskulIds(CURRENT_USER.id_user); list = list.filter(p => p.target === 'all' || (p.target === 'ekskul' && myIds.includes(p.id_target)) || p.dibuat_oleh === CURRENT_USER.id_user); }
+  else if (r === 'pengurus') { list = list.filter(p => p.target === 'all' || p.id_target === CURRENT_EKSKUL_CTX || p.dibuat_oleh === CURRENT_USER.id_user); }
 
   el.innerHTML = `
-    ${canPost ? `<div class="card mb-3"><div class="card-header">
-      <h2 class="font-display text-base">${icon('pengumuman', 18)} Buat Pengumuman</h2>
-    </div>
+    ${canPost ? `<div class="card mb-3"><div class="card-header"><h2 class="font-display text-base">${icon('pengumuman', 18)} Buat Pengumuman</h2></div>
     <div class="card-body space-y-3">
       <div><label class="field-label">Judul</label><input id="pum-judul" class="field-input"></div>
       <div><label class="field-label">Isi</label><textarea id="pum-isi" class="field-input" rows="3"></textarea></div>
       <div><label class="field-label">Target</label>
         <select id="pum-target" class="field-input">
           <option value="all">Semua</option>
-          ${(r === 'guru' || r === 'pelatih' || r === 'pengurus') ? userEkskulIds(CURRENT_USER.id_user).map(id => {
-            const e = ekskulById(id);
-            return e ? `<option value="ekskul:${id}">Ekskul ${esc(e.nama_ekskul)}</option>` : '';
-          }).join('') : ''}
+          ${(r === 'guru' || r === 'pelatih' || r === 'pengurus') ? userEkskulIds(CURRENT_USER.id_user).map(id => { const e = ekskulById(id); return e ? `<option value="ekskul:${id}">Ekskul ${esc(e.nama_ekskul)}</option>` : ''; }).join('') : ''}
           ${r === 'admin' ? EKSKUL.map(e => `<option value="ekskul:${e.id_ekskul}">Ekskul ${esc(e.nama_ekskul)}</option>`).join('') : ''}
         </select></div>
       <div class="flex justify-end"><button onclick="postPengumuman()" class="btn btn-primary">${icon('plus', 14)} Posting</button></div>
@@ -119,13 +83,7 @@ ROUTES.pengumuman = el => {
     const targetVal = $('#pum-target').value;
     if (!judul || !isi) return showToast('Lengkapi judul dan isi', 'warning');
     const isEkskul = targetVal.startsWith('ekskul:');
-    const p = {
-      id_pengumuman: uid('pg'), judul, isi, gambar_url: '',
-      target: isEkskul ? 'ekskul' : 'all',
-      id_target: isEkskul ? targetVal.split(':')[1] : '',
-      dibuat_oleh: CURRENT_USER.id_user,
-      created_at: new Date().toISOString()
-    };
+    const p = { id_pengumuman: uid('pg'), judul, isi, gambar_url: '', target: isEkskul ? 'ekskul' : 'all', id_target: isEkskul ? targetVal.split(':')[1] : '', dibuat_oleh: CURRENT_USER.id_user, created_at: new Date().toISOString() };
     PENGUMUMAN.push(p);
     persist();
     if (p.target === 'all') kirimNotifSemua('Pengumuman: ' + judul, isi, 'info');
@@ -134,11 +92,7 @@ ROUTES.pengumuman = el => {
     showTab('pengumuman');
     showToast('Pengumuman diposting');
   };
-  window.hapusPengumuman = id => {
-    if (!confirm('Hapus pengumuman ini?')) return;
-    PENGUMUMAN = PENGUMUMAN.filter(p => p.id_pengumuman !== id);
-    persist(); showTab('pengumuman'); showToast('Dihapus', 'warning');
-  };
+  window.hapusPengumuman = id => { if (!confirm('Hapus pengumuman ini?')) return; PENGUMUMAN = PENGUMUMAN.filter(p => p.id_pengumuman !== id); persist(); showTab('pengumuman'); showToast('Dihapus', 'warning'); };
 };
 
 ROUTES.konten = el => {
@@ -146,19 +100,13 @@ ROUTES.konten = el => {
   const canPost = r === 'admin' || r === 'guru' || r === 'pelatih' || r === 'pengurus';
   const myIds = r === 'pengurus' ? [CURRENT_EKSKUL_CTX] : userEkskulIds(CURRENT_USER.id_user);
   let list = KONTEN.slice().reverse();
-  if (r === 'murid') {
-    const mIds = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user).map(a => a.id_ekskul);
-    list = list.filter(k => mIds.includes(k.id_ekskul));
-  }
+  if (r === 'murid') { const mIds = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user).map(a => a.id_ekskul); list = list.filter(k => mIds.includes(k.id_ekskul)); }
 
   el.innerHTML = `
-    ${canPost ? `
-    <div class="card mb-3"><div class="card-header"><h2 class="font-display text-base">${icon('upload', 18)} Upload Konten</h2></div>
+    ${canPost ? `<div class="card mb-3"><div class="card-header"><h2 class="font-display text-base">${icon('upload', 18)} Upload Konten</h2></div>
     <div class="card-body space-y-3">
       <div><label class="field-label">Ekskul</label>
-        <select id="kt-ekskul" class="field-input">
-          ${myIds.map(id => { const e = ekskulById(id); return e ? `<option value="${id}">${esc(e.nama_ekskul)}</option>` : ''; }).join('')}
-        </select></div>
+        <select id="kt-ekskul" class="field-input">${myIds.map(id => { const e = ekskulById(id); return e ? `<option value="${id}">${esc(e.nama_ekskul)}</option>` : ''; }).join('')}</select></div>
       <div><label class="field-label">Tipe</label>
         <select id="kt-tipe" class="field-input">
           <option value="jadwal">Jadwal Kegiatan</option>
@@ -211,14 +159,7 @@ ROUTES.konten = el => {
     let gambar = '';
     const f = $('#kt-gambar').files[0];
     if (f) { try { gambar = await compressImage(f, 800, 0.75); } catch(e) {} }
-    KONTEN.push({
-      id_konten: uid('kt'), id_ekskul: idEks, tipe, judul,
-      deskripsi: desc, gambar_url: gambar, tanggal: tgl,
-      tempat: $('#kt-tempat').value.trim(),
-      link: $('#kt-link').value.trim(),
-      dibuat_oleh: CURRENT_USER.id_user,
-      created_at: new Date().toISOString()
-    });
+    KONTEN.push({ id_konten: uid('kt'), id_ekskul: idEks, tipe, judul, deskripsi: desc, gambar_url: gambar, tanggal: tgl, tempat: $('#kt-tempat').value.trim(), link: $('#kt-link').value.trim(), dibuat_oleh: CURRENT_USER.id_user, created_at: new Date().toISOString() });
     persist();
     const tipeLabel = tipe === 'jadwal' ? 'Jadwal Baru' : tipe === 'foto' ? 'Foto Baru' : 'Info Baru';
     kirimNotifEkskul(idEks, tipeLabel + ': ' + judul, desc, 'info');
@@ -226,11 +167,7 @@ ROUTES.konten = el => {
     showTab('konten');
     showToast('Konten diupload');
   };
-  window.hapusKonten = id => {
-    if (!confirm('Hapus konten ini?')) return;
-    KONTEN = KONTEN.filter(k => k.id_konten !== id);
-    persist(); showTab('konten'); showToast('Dihapus', 'warning');
-  };
+  window.hapusKonten = id => { if (!confirm('Hapus konten ini?')) return; KONTEN = KONTEN.filter(k => k.id_konten !== id); persist(); showTab('konten'); showToast('Dihapus', 'warning'); };
 };
 
 ROUTES.kalender = el => {
@@ -238,21 +175,17 @@ ROUTES.kalender = el => {
   let ids = [];
   if (r === 'murid') ids = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user).map(a => a.id_ekskul);
   else if (r === 'pengurus') ids = [CURRENT_EKSKUL_CTX];
+  else if (r === 'admin') ids = EKSKUL.map(e => e.id_ekskul);
   else ids = userEkskulIds(CURRENT_USER.id_user);
 
   const now = new Date();
-  let curMonth = now.getMonth();
-  let curYear = now.getFullYear();
+  let curMonth = now.getMonth(), curYear = now.getFullYear();
 
   function render() {
     const firstDay = new Date(curYear, curMonth, 1).getDay();
     const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
     const monthName = BULAN[curMonth] + ' ' + curYear;
-    const jurnalMonth = JURNAL.filter(j => {
-      const d = new Date(j.tanggal + 'T00:00:00');
-      return d.getMonth() === curMonth && d.getFullYear() === curYear &&
-        (ids.length === 0 || ids.includes(j.id_ekskul));
-    });
+    const jurnalMonth = JURNAL.filter(j => { const d = new Date(j.tanggal + 'T00:00:00'); return d.getMonth() === curMonth && d.getFullYear() === curYear && (ids.length === 0 || ids.includes(j.id_ekskul)); });
     const kalHTML = [];
     for (let i = 0; i < firstDay; i++) kalHTML.push(`<div class="kal-cell kal-empty"></div>`);
     for (let d = 1; d <= daysInMonth; d++) {
@@ -326,13 +259,8 @@ ROUTES.faq = el => {
   window.toggleFaq = i => {
     const ans = document.getElementById('faq-ans-' + i);
     const iconEl = document.getElementById('faq-icon-' + i);
-    if (ans.classList.contains('hidden')) {
-      ans.classList.remove('hidden');
-      iconEl.innerHTML = icon('minus', 18);
-    } else {
-      ans.classList.add('hidden');
-      iconEl.innerHTML = icon('plus', 18);
-    }
+    if (ans.classList.contains('hidden')) { ans.classList.remove('hidden'); iconEl.innerHTML = icon('minus', 18); }
+    else { ans.classList.add('hidden'); iconEl.innerHTML = icon('plus', 18); }
   };
   window.hubungiKoordinator = () => {
     const admin = USERS.find(u => u.role_sistem === 'admin' && u.no_wa);
