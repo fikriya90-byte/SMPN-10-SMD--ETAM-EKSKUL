@@ -1,5 +1,5 @@
 /* =====================================================================
-   firebase-config.js — Konfigurasi Firebase + Admin Create Auth User
+   firebase-config.js — FIXED: Persistence awaited + Error handling
    ===================================================================== */
 
 const FIREBASE_CONFIG = {
@@ -14,31 +14,36 @@ const FIREBASE_CONFIG = {
 const ADMIN_FIREBASE_UID = "z5NU9hsv8jaS5oGd95eZxNeZpcc2";
 
 const ADMIN_DEFAULT = {
-  id_user: 'admin_utama',
-  nama_lengkap: 'Admin ETAM',
-  email: 'admin@etamspanluh.com',
-  nis: '', nisn: '', nip: '', no_wa: '',
-  role_sistem: 'admin',
-  kelas: '', foto_profil_url: '',
-  active: true
+  id_user: 'admin_utama', nama_lengkap: 'Admin ETAM',
+  email: 'admin@etamspanluh.com', nis: '', nisn: '', nip: '', no_wa: '',
+  role_sistem: 'admin', kelas: '', foto_profil_url: '', active: true
 };
 const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
 
 let firebaseApp = null;
 let firebaseAuth = null;
+let _persistenceReady = false;
 
-function initFirebase() {
-  if (firebaseApp) return firebaseApp;
+async function initFirebase() {
+  if (firebaseApp && _persistenceReady) return firebaseApp;
   try {
     if (typeof firebase === 'undefined') {
       console.error('[Firebase] SDK belum dimuat');
       return null;
     }
-    firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-    firebaseAuth = firebase.auth();
-    // Persistence: LOCAL → session disimpan di IndexedDB, tidak hilang saat refresh
-    firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
-    console.log('[ETAM] Firebase terhubung:', FIREBASE_CONFIG.projectId);
+    if (!firebaseApp) firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+    if (!firebaseAuth) firebaseAuth = firebase.auth();
+
+    // FIX BUG #1: Persistence harus di-await
+    if (!_persistenceReady) {
+      try {
+        await firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        _persistenceReady = true;
+        console.log('[Firebase] Persistence LOCAL OK');
+      } catch(e) {
+        console.warn('[Firebase] Persistence gagal:', e);
+      }
+    }
     return firebaseApp;
   } catch (e) {
     console.error('[Firebase] Gagal init:', e);
@@ -48,9 +53,11 @@ function initFirebase() {
 
 /* ============ AUTH WRAPPERS ============ */
 async function fbLogin(email, password) {
-  if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
   try {
+    if (!firebaseAuth) await initFirebase();
+    if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
+    // Pastikan persistence sudah siap sebelum login
+    if (!_persistenceReady) await initFirebase();
     const cred = await firebaseAuth.signInWithEmailAndPassword(email, password);
     return { ok: true, user: cred.user };
   } catch (e) {
@@ -59,9 +66,9 @@ async function fbLogin(email, password) {
 }
 
 async function fbRegister(email, password) {
-  if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
   try {
+    if (!firebaseAuth) await initFirebase();
+    if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
     const cred = await firebaseAuth.createUserWithEmailAndPassword(email, password);
     return { ok: true, user: cred.user };
   } catch (e) {
@@ -69,7 +76,7 @@ async function fbRegister(email, password) {
   }
 }
 
-/* ADMIN buat akun Firebase Auth untuk user lain (tanpa logout admin) */
+/* ADMIN buat akun Firebase Auth untuk user lain */
 async function fbAdminCreateUser(email, password) {
   if (typeof firebase === 'undefined') return { ok: false, msg: 'Firebase belum siap' };
   const appName = 'Secondary-' + Date.now();
@@ -88,28 +95,14 @@ async function fbAdminCreateUser(email, password) {
   }
 }
 
-/* Hapus akun Firebase Auth (butuh login sebagai user tersebut, biasanya tidak dipakai) */
-async function fbDeleteAuthUser(email, password) {
-  if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) return { ok: false };
-  try {
-    const cred = await firebaseAuth.signInWithEmailAndPassword(email, password);
-    await cred.user.delete();
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, code: e.code, msg: e.message };
-  }
-}
-
 async function fbLogout() {
-  if (!firebaseAuth) return;
-  try { await firebaseAuth.signOut(); } catch (e) {}
+  try { if (firebaseAuth) await firebaseAuth.signOut(); } catch(e) {}
 }
 
 async function fbSendReset(email) {
-  if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
   try {
+    if (!firebaseAuth) await initFirebase();
+    if (!firebaseAuth) return { ok: false, msg: 'Firebase belum siap' };
     await firebaseAuth.sendPasswordResetEmail(email);
     return { ok: true };
   } catch (e) {
@@ -118,10 +111,10 @@ async function fbSendReset(email) {
 }
 
 async function fbUpdatePassword(newPassword) {
-  if (!firebaseAuth) initFirebase();
-  const user = firebaseAuth.currentUser;
-  if (!user) return { ok: false, msg: 'Sesi berakhir. Login ulang.' };
   try {
+    if (!firebaseAuth) await initFirebase();
+    const user = firebaseAuth ? firebaseAuth.currentUser : null;
+    if (!user) return { ok: false, msg: 'Sesi berakhir. Login ulang.' };
     await user.updatePassword(newPassword);
     return { ok: true };
   } catch (e) {
@@ -129,13 +122,31 @@ async function fbUpdatePassword(newPassword) {
   }
 }
 
-async function fbGetCurrentUser() {
-  if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) return null;
-  return new Promise((resolve) => {
-    const unsub = firebaseAuth.onAuthStateChanged(u => { unsub(); resolve(u); });
-    setTimeout(() => { try { unsub(); } catch(e) {} resolve(firebaseAuth.currentUser); }, 3000);
-  });
+/* FIX BUG #2: fbGetCurrentUser lebih robust */
+async function fbGetCurrentUser(timeoutMs = 10000) {
+  try {
+    if (!firebaseAuth) await initFirebase();
+    if (!firebaseAuth) return null;
+
+    // Kalau currentUser sudah ada, langsung return
+    if (firebaseAuth.currentUser) return firebaseAuth.currentUser;
+
+    return new Promise((resolve) => {
+      let resolved = false;
+      const finish = (u) => {
+        if (resolved) return;
+        resolved = true;
+        try { unsub(); } catch(e) {}
+        resolve(u);
+      };
+      const unsub = firebaseAuth.onAuthStateChanged(u => finish(u));
+      // Timeout lebih panjang
+      setTimeout(() => finish(firebaseAuth.currentUser), timeoutMs);
+    });
+  } catch(e) {
+    console.warn('[Firebase] fbGetCurrentUser error:', e);
+    return null;
+  }
 }
 
 function firebaseErrorMsg(code) {
@@ -163,7 +174,6 @@ window.initFirebase = initFirebase;
 window.fbLogin = fbLogin;
 window.fbRegister = fbRegister;
 window.fbAdminCreateUser = fbAdminCreateUser;
-window.fbDeleteAuthUser = fbDeleteAuthUser;
 window.fbLogout = fbLogout;
 window.fbSendReset = fbSendReset;
 window.fbUpdatePassword = fbUpdatePassword;
