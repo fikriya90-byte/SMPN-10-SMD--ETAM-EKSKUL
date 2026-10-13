@@ -18,9 +18,17 @@ async function init() {
   applyTheme();
   initFirebase();
 
-  // Pull data dari Firestore (jika ada)
+  // ============ AUTO PULL DARI FIRESTORE ============
   if (typeof fsPullAll === 'function') {
-    try { await fsPullAll(); } catch(e) { console.warn('[Init] fsPullAll error:', e); }
+    try {
+      console.log('[Init] Pull data dari Firestore...');
+      const ok = await fsPullAll();
+      if (ok) console.log('[Init] Data dari Firestore berhasil dimuat');
+    } catch(e) {
+      console.warn('[Init] fsPullAll error:', e);
+    }
+  } else {
+    console.warn('[Init] fsPullAll tidak tersedia — pastikan firestore-sync.js dimuat');
   }
 
   // Cek session Firebase
