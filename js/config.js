@@ -2,12 +2,8 @@
 
 const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const JABATAN_LABEL = {
-  anggota: 'Anggota',
-  ketua: 'Ketua',
-  wakil_ketua: 'Wakil Ketua',
-  sekretaris: 'Sekretaris',
-  bendahara: 'Bendahara',
-  dokumentasi: 'Dokumentasi',
+  anggota: 'Anggota', ketua: 'Ketua', wakil_ketua: 'Wakil Ketua',
+  sekretaris: 'Sekretaris', bendahara: 'Bendahara', dokumentasi: 'Dokumentasi',
   pembina: 'Pembina / Pelatih'
 };
 
@@ -15,16 +11,15 @@ let USERS = [], EKSKUL = [], PEMBINA = [], ANGGOTA = [], JURNAL = [], PRESENSI =
 let KAS_SETTING = {}, KAS_BAYAR = [], APP_SETTINGS = {};
 let STRUKTUR_EKSKUL = {}, LAPORAN_FOTO = [];
 let KONTEN = [], PENGUMUMAN = [], NOTIFIKASI = [], LOGS = [], LUPA_PASSWORD = [];
+let STRUKTUR_ARSIP = {}, ARSIP_SISWA = [];
+let TAHUN_AJARAN_AKTIF = '2026/2027';
 let CURRENT_USER = null, CURRENT_EKSKUL_CTX = null, QR_SCANNER = null;
 let loginRole = 'murid', regRole = 'murid';
 
 const ADMIN_DEFAULT = {
-  id_user: 'u_admin',
-  nama_lengkap: 'Administrator ETAM',
-  email: 'admin@smp10smd.com',
-  nis: '', nisn: '', no_wa: '',
-  role_sistem: 'admin', kelas: '',
-  foto_profil_url: '', active: true
+  id_user: 'u_admin', nama_lengkap: 'Administrator ETAM',
+  email: 'admin@smp10smd.com', nis: '', nisn: '', no_wa: '',
+  role_sistem: 'admin', kelas: '', foto_profil_url: '', active: true
 };
 const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
 
