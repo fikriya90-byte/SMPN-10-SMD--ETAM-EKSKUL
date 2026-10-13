@@ -61,9 +61,12 @@ async function handleLogin(ev) {
   const legacy = legacyHash(pwd);
 
   const u = USERS.find(x =>
-    (x.email && x.email.toLowerCase() === inputLow) || (x.nis && x.nis === input) || (x.nisn && x.nisn === input)
+    (x.email && x.email.toLowerCase() === inputLow) ||
+    (x.nis && x.nis === input) ||
+    (x.nisn && x.nisn === input) ||
+    (x.nip && x.nip === input)
   );
-  if (!u) return fail('Email/NIS tidak terdaftar');
+  if (!u) return fail('Email / NIS / NIP tidak terdaftar');
   if (u.password_hash !== hash && u.password_hash !== legacy && u.password !== legacy) return fail('Password salah');
   if (!u.active) return fail('Akun belum diverifikasi / dinonaktifkan');
 
@@ -92,7 +95,7 @@ async function handleLogin(ev) {
     }
   }
 
-  localStorage.setItem('etam_session', u.email || u.nis || u.id_user);
+  localStorage.setItem('etam_session', u.email || u.nis || u.nip || u.id_user);
   logAction('login', { user: u.nama_lengkap });
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -122,7 +125,7 @@ async function handleRegister(ev) {
     if (USERS.some(u => u.nis && u.nis === nis)) return fail('NIS sudah terdaftar');
     if (!kelas) return fail('Pilih kelas');
     USERS.push({
-      id_user: uid('u'), nama_lengkap: name, email, nis, nisn, password_hash: hash, no_wa: wa,
+      id_user: uid('u'), nama_lengkap: name, email, nis, nisn, nip: '', password_hash: hash, no_wa: wa,
       role_sistem: 'murid', kelas, foto_profil_url: '', active: true, last_login: '', created_at: new Date().toISOString()
     });
     persist();
@@ -131,17 +134,19 @@ async function handleRegister(ev) {
   } else {
     const tipe = document.getElementById('reg-tipe-guru').value;
     const idEks = document.getElementById('reg-ekskul').value;
+    const nip = (document.getElementById('reg-nip')?.value || '').trim();
     if (!idEks) return fail('Pilih ekskul yang dibina');
+    if (nip && USERS.some(u => u.nip && u.nip === nip)) return fail('NIP sudah terdaftar');
     const newId = uid('u');
     USERS.push({
-      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '', password_hash: hash, no_wa: wa,
+      id_user: newId, nama_lengkap: name, email, nis: '', nisn: '', nip: nip, password_hash: hash, no_wa: wa,
       role_sistem: tipe, kelas: '', foto_profil_url: '', active: false, last_login: '', created_at: new Date().toISOString()
     });
     PEMBINA.push({ id_pembina: uid('p'), id_user: newId, id_ekskul: idEks, status_akun: 'pending', created_at: new Date().toISOString() });
     persist();
-    logAction('register_guru', { email, tipe, idEks });
+    logAction('register_guru', { email, tipe, idEks, nip });
     const admin = USERS.find(u => u.role_sistem === 'admin');
-    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru', `${name} mendaftar sebagai ${tipe} untuk ekskul ${ekskulById(idEks)?.nama_ekskul}. Menunggu verifikasi.`, 'warning', { tab: 'verifikasi' });
+    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru', `${name} mendaftar sebagai ${tipe} untuk ekskul ${ekskulById(idEks)?.nama_ekskul}. Menunggu verifikasi.`, 'warning', { tab: 'pembina' });
     info.textContent = 'Pendaftaran terkirim! Tunggu verifikasi Admin.';
   }
 
@@ -167,7 +172,6 @@ function logout() {
   if (typeof stopQRScan === 'function') { try { stopQRScan(); } catch(e) {} }
   logAction('logout', {});
   localStorage.removeItem('etam_session');
-  // Hapus state persistence saat logout
   if (typeof clearSavedTab === 'function') clearSavedTab();
   if (typeof clearEkskulCtx === 'function') clearEkskulCtx();
   CURRENT_USER = null; CURRENT_EKSKUL_CTX = null;
@@ -179,17 +183,11 @@ function logout() {
 function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
-
-  // Validasi ekskul context
   ensureEkskulCtx();
-
   renderNav();
-
-  // Cek tab terakhir yang disimpan
   const saved = getSavedTab();
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   const isValid = saved && tabs.some(t => t.key === saved);
-
   if (isValid) {
     showTab(saved);
     setTimeout(() => showToast('Kembali ke halaman terakhir'), 300);
