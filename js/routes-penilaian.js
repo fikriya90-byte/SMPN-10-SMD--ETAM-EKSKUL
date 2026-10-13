@@ -450,12 +450,3 @@ ROUTES.penilaian = el => {
     win.document.close();
   };
 };
-
-/* Helper warna dropdown nilai */
-function warnaNilaiSelect(v) {
-  if (v === 'A') return 'color:#10B981;background:rgba(16,185,129,.1);border-color:#10B981';
-  if (v === 'B') return 'color:#3B82F6;background:rgba(59,130,246,.1);border-color:#3B82F6';
-  if (v === 'C') return 'color:#FBBF24;background:rgba(251,191,36,.1);border-color:#FBBF24';
-  if (v === 'D') return 'color:#EF4444;background:rgba(239,68,68,.1);border-color:#EF4444';
-  return '';
-}
