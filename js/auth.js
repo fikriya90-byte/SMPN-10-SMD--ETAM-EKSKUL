@@ -55,7 +55,7 @@ function closeForgot() {
 }
 
 /* ================================================================
-   LOGIN — Firebase Auth
+   LOGIN — Firebase Auth (FIXED: Auto-create local user jika login via Firebase)
    ================================================================ */
 async function handleLogin(ev) {
   ev.preventDefault();
@@ -70,20 +70,63 @@ async function handleLogin(ev) {
 
   // Cari user di data lokal
   const inputLow = input.toLowerCase();
-  const userRec = USERS.find(x =>
+  let userRec = USERS.find(x =>
     (x.email && x.email.toLowerCase() === inputLow) ||
     (x.nis && x.nis === input) ||
     (x.nip && x.nip === input)
   );
-  if (!userRec) return fail('Email/NIS/NIP tidak terdaftar');
-  if (!userRec.email) return fail('Akun ini tidak memiliki email');
 
-  // Login ke Firebase
-  showToast('Memverifikasi...');
-  const result = await fbLogin(userRec.email, pwd);
-  if (!result.ok) return fail(result.msg);
+  // ============ LOGIKA BARU: FALLBACK KE FIREBASE ============
+  if (!userRec) {
+    // Jika tidak ada di lokal, coba login langsung ke Firebase
+    showToast('Memverifikasi ke Firebase...');
+    const result = await fbLogin(input, pwd);
+    
+    if (result.ok) {
+      // Jika berhasil login di Firebase, buat data lokal secara otomatis
+      userRec = {
+        id_user: 'u_' + result.user.uid,
+        nama_lengkap: result.user.email.split('@')[0], // Nama sementara dari email
+        email: result.user.email,
+        nis: '',
+        nisn: '',
+        nip: '',
+        password_hash: '', // Password dikelola Firebase
+        no_wa: '',
+        role_sistem: loginRole, // Sesuaikan dengan tab yang dipilih (murid/guru/admin)
+        kelas: '',
+        foto_profil_url: '',
+        active: true,
+        last_login: '',
+        firebase_uid: result.user.uid,
+        created_at: new Date().toISOString()
+      };
+      
+      USERS.push(userRec);
+      persist();
+      console.log('[ETAM] User baru dari Firebase berhasil ditambahkan ke localStorage:', userRec.email);
+      
+      // Log aktivitas
+      logAction('auto_register_local', { email: userRec.email, firebase_uid: result.user.uid });
+    } else {
+      return fail(result.msg || 'Email/NIS/NIP tidak terdaftar atau password salah');
+    }
+  } else {
+    // Jika user ada di lokal, verifikasi password ke Firebase
+    if (!userRec.email) return fail('Akun ini tidak memiliki email');
+    
+    showToast('Memverifikasi...');
+    const result = await fbLogin(userRec.email, pwd);
+    if (!result.ok) return fail(result.msg);
 
-  // Cek role sesuai tab
+    // Pastikan firebase_uid tersinkronisasi
+    if (!userRec.firebase_uid) {
+      userRec.firebase_uid = result.user.uid;
+      persist();
+    }
+  }
+
+  // ============ CEK ROLE ============
   const roleMap = {
     murid: ['murid', 'pengurus'],
     guru: ['guru', 'pelatih'],
@@ -109,13 +152,12 @@ async function handleLogin(ev) {
   // Set current user
   CURRENT_USER = Object.assign({}, userRec);
   CURRENT_USER.last_login = new Date().toISOString();
-  CURRENT_USER._firebase_uid = result.user.uid;
+  CURRENT_USER._firebase_uid = userRec.firebase_uid;
 
   // Update data lokal
   const uRec = USERS.find(x => x.id_user === userRec.id_user);
   if (uRec) {
     uRec.last_login = CURRENT_USER.last_login;
-    uRec.firebase_uid = result.user.uid;
     persist();
   }
 
@@ -134,7 +176,7 @@ async function handleLogin(ev) {
   }
 
   localStorage.setItem('etam_session', userRec.email || userRec.nis || userRec.id_user);
-  logAction('login', { user: userRec.nama_lengkap, firebase_uid: result.user.uid });
+  logAction('login', { user: userRec.nama_lengkap, firebase_uid: userRec.firebase_uid });
 
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -159,14 +201,12 @@ async function handleRegister(ev) {
   info.classList.add('hidden');
   const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
 
-  // Validasi dasar
   if (!name) return fail('Nama lengkap wajib diisi');
   if (!email) return fail('Email wajib diisi');
   if (!wa) return fail('No. WhatsApp wajib diisi');
   if (pwd.length < 6) return fail('Password minimal 6 karakter');
   if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar di sistem');
 
-  // Validasi per role
   if (regRole === 'murid') {
     const nis = document.getElementById('reg-nis').value.trim();
     const kelas = document.getElementById('reg-kelas').value;
@@ -179,13 +219,11 @@ async function handleRegister(ev) {
     if (nip && USERS.some(u => u.nip && u.nip === nip)) return fail('NIP sudah terdaftar');
   }
 
-  // Register ke Firebase
   showToast('Mendaftarkan akun...');
   const fbResult = await fbRegister(email, pwd);
   if (!fbResult.ok) return fail(fbResult.msg);
   const firebaseUid = fbResult.user.uid;
 
-  // Simpan data lokal
   if (regRole === 'murid') {
     const nis = document.getElementById('reg-nis').value.trim();
     const nisn = document.getElementById('reg-nisn').value.trim();
@@ -260,7 +298,6 @@ async function handleRegister(ev) {
   info.classList.remove('hidden');
   document.getElementById('form-register').reset();
 
-  // Logout dari Firebase setelah register
   await fbLogout();
 
   setTimeout(() => {
@@ -282,7 +319,6 @@ async function handleForgot(ev) {
   info.className = 'alert alert-info';
   info.textContent = 'Memproses permintaan...';
 
-  // Cari user untuk dapat email
   const inputLow = input.toLowerCase();
   const u = USERS.find(x =>
     (x.email && x.email.toLowerCase() === inputLow) ||
@@ -302,7 +338,6 @@ async function handleForgot(ev) {
     return;
   }
 
-  // Rate limit: 1 permintaan per email per 5 menit (via localStorage)
   const rateKey = 'etam_reset_' + u.email;
   const last = localStorage.getItem(rateKey);
   if (last && (Date.now() - Number(last)) < 5 * 60 * 1000) {
@@ -312,7 +347,6 @@ async function handleForgot(ev) {
     return;
   }
 
-  // Kirim email reset via Firebase
   info.textContent = 'Mengirim email reset...';
   const result = await fbSendReset(u.email);
   if (!result.ok) {
