@@ -1,5 +1,5 @@
 /* =====================================================================
-   ETAM v6 — Complete Stylesheet (Full File)
+   ETAM v6 — Complete Stylesheet (Full File, FIXED SCROLL)
    ===================================================================== */
 
 /* ============ RESET ============ */
@@ -214,7 +214,6 @@ h1,h2,h3,h4{font-weight:800;line-height:1.2;letter-spacing:-.02em}
 .overflow-hidden{overflow:hidden}
 .cursor-pointer{cursor:pointer}
 
-/* Responsive utilities */
 @media(min-width:640px){
   .sm\:block{display:block}
   .sm\:hidden{display:none !important}
@@ -238,6 +237,7 @@ h1,h2,h3,h4{font-weight:800;line-height:1.2;letter-spacing:-.02em}
 /* ============ LOGIN SCREEN — FIXED SCROLL ============ */
 #login-screen{
   min-height:100vh;
+  min-height:100dvh;
   display:flex;
   align-items:flex-start;
   justify-content:center;
@@ -1229,6 +1229,7 @@ tbody tr:hover td{background:var(--surface-2)}
   @page{size:A4;margin:1.2cm}
   html,body{background:#fff !important;color:#000 !important}
 }
+
 /* ============ PILIH EKSKUL (MULTI-SELECT) ============ */
 .pilih-ekskul-list {
   display: flex;
