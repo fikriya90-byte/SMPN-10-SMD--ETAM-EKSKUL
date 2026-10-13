@@ -1,10 +1,10 @@
-/* nav.js — Sidebar Navigation */
+/* nav.js — Sidebar Navigation + Header Context Dinamis */
 
 const NAV = {
   admin: [
     { key:'dashboard', label:'Dashboard', icon:'dashboard', group:'Utama' },
     { key:'verifikasi', label:'Verifikasi', icon:'verifikasi', group:'Utama' },
-    { key:'ekskul', label:'Ekskul', icon:'ekskul', group:'Manajemen' },
+    { key:'ekskul', label:'Manajemen Ekskul', icon:'ekskul', group:'Manajemen' },
     { key:'struktur', label:'Struktur', icon:'struktur', group:'Manajemen' },
     { key:'pengumuman', label:'Pengumuman', icon:'pengumuman', group:'Manajemen' },
     { key:'rekap', label:'Rekap Global', icon:'rekap', group:'Laporan' },
@@ -14,6 +14,7 @@ const NAV = {
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
     { key:'log', label:'Log', icon:'log', group:'Lainnya' },
     { key:'lupapwd', label:'Lupa Pwd', icon:'lupapwd', group:'Lainnya' },
+    { key:'reset', label:'Reset & Arsip', icon:'refresh', group:'Lainnya' },
     { key:'setting', label:'Setting', icon:'setting', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
@@ -23,6 +24,7 @@ const NAV = {
     { key:'jurnal', label:'Jurnal', icon:'jurnal', group:'Kegiatan' },
     { key:'izin', label:'Izin', icon:'izin', group:'Kegiatan' },
     { key:'kalender', label:'Kalender', icon:'kalender', group:'Kegiatan' },
+    { key:'ekskul', label:'Ekskul Saya', icon:'ekskul', group:'Manajemen' },
     { key:'struktur', label:'Struktur', icon:'struktur', group:'Manajemen' },
     { key:'konten', label:'Konten', icon:'konten', group:'Manajemen' },
     { key:'pengumuman', label:'Pengumuman', icon:'pengumuman', group:'Manajemen' },
@@ -31,7 +33,7 @@ const NAV = {
     { key:'laporan', label:'Laporan', icon:'laporan', group:'Laporan' },
     { key:'statistik', label:'Statistik', icon:'statistik', group:'Laporan' },
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
-    { key:'profil', label:'Profil Ekskul', icon:'ekskul', group:'Lainnya' },
+    { key:'reset', label:'Reset & Arsip', icon:'refresh', group:'Lainnya' },
     { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
@@ -41,6 +43,7 @@ const NAV = {
     { key:'jurnal', label:'Jurnal', icon:'jurnal', group:'Kegiatan' },
     { key:'izin', label:'Izin', icon:'izin', group:'Kegiatan' },
     { key:'kalender', label:'Kalender', icon:'kalender', group:'Kegiatan' },
+    { key:'ekskul', label:'Ekskul Saya', icon:'ekskul', group:'Manajemen' },
     { key:'struktur', label:'Struktur', icon:'struktur', group:'Manajemen' },
     { key:'konten', label:'Konten', icon:'konten', group:'Manajemen' },
     { key:'pengumuman', label:'Pengumuman', icon:'pengumuman', group:'Manajemen' },
@@ -49,7 +52,7 @@ const NAV = {
     { key:'laporan', label:'Laporan', icon:'laporan', group:'Laporan' },
     { key:'statistik', label:'Statistik', icon:'statistik', group:'Laporan' },
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
-    { key:'profil', label:'Profil Ekskul', icon:'ekskul', group:'Lainnya' },
+    { key:'reset', label:'Reset & Arsip', icon:'refresh', group:'Lainnya' },
     { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
@@ -59,6 +62,7 @@ const NAV = {
     { key:'jurnal', label:'Jurnal', icon:'jurnal', group:'Kegiatan' },
     { key:'izin', label:'Izin', icon:'izin', group:'Kegiatan' },
     { key:'kalender', label:'Kalender', icon:'kalender', group:'Kegiatan' },
+    { key:'ekskul', label:'Ekskul Saya', icon:'ekskul', group:'Manajemen' },
     { key:'struktur', label:'Struktur', icon:'struktur', group:'Manajemen' },
     { key:'konten', label:'Konten', icon:'konten', group:'Manajemen' },
     { key:'pengumuman', label:'Pengumuman', icon:'pengumuman', group:'Manajemen' },
@@ -67,7 +71,6 @@ const NAV = {
     { key:'laporan', label:'Laporan', icon:'laporan', group:'Laporan' },
     { key:'statistik', label:'Statistik', icon:'statistik', group:'Laporan' },
     { key:'peta', label:'Peta', icon:'peta', group:'Lainnya' },
-    { key:'profil', label:'Profil Ekskul', icon:'ekskul', group:'Lainnya' },
     { key:'gantipwd', label:'Ganti Pwd', icon:'gantipwd', group:'Lainnya' },
     { key:'faq', label:'FAQ', icon:'faq', group:'Lainnya' }
   ],
@@ -77,6 +80,7 @@ const NAV = {
     { key:'absen', label:'Absen', icon:'absen', group:'Kegiatan' },
     { key:'riwayat', label:'Riwayat', icon:'riwayat', group:'Kegiatan' },
     { key:'kalender', label:'Kalender', icon:'kalender', group:'Kegiatan' },
+    { key:'ekskul', label:'Ekskul Saya', icon:'ekskul', group:'Kegiatan' },
     { key:'kas', label:'Kas Saya', icon:'kas', group:'Keuangan' },
     { key:'kartu', label:'Kartu Ekskul', icon:'kartu', group:'Keuangan' },
     { key:'pengumuman', label:'Pengumuman', icon:'pengumuman', group:'Informasi' },
@@ -95,13 +99,15 @@ function renderNav() {
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
   const navEl = document.getElementById('nav-tabs');
   if (!navEl) return;
+
   const groups = {};
   tabs.forEach(t => {
     const g = t.group || 'Lainnya';
     if (!groups[g]) groups[g] = [];
     groups[g].push(t);
   });
-  const roleLabel = { admin:'Admin', guru:'Guru', pelatih:'Pelatih', pengurus:'Pengurus', murid:'Siswa' }[CURRENT_USER.role_sistem] || 'User';
+
+  const roleLabel = { admin: 'Admin', guru: 'Guru', pelatih: 'Pelatih', pengurus: 'Pengurus', murid: 'Siswa' }[CURRENT_USER.role_sistem] || 'User';
 
   navEl.innerHTML = `
     <div class="sidebar-header">
@@ -115,6 +121,7 @@ function renderNav() {
         <p class="sidebar-brand-school">SMP Negeri 10 Samarinda</p>
       </div>
     </div>
+
     <div class="sidebar-user">
       <div class="sidebar-user-info">
         ${CURRENT_USER.foto_profil_url
@@ -125,7 +132,11 @@ function renderNav() {
           <p class="sidebar-user-role">${roleLabel}${CURRENT_USER._jabatan ? ' - ' + (JABATAN_LABEL[CURRENT_USER._jabatan] || '') : ''}</p>
         </div>
       </div>
+      <div class="sidebar-user-year">
+        ${icon('kalender', 11)} ${esc(TAHUN_AJARAN_AKTIF)}
+      </div>
     </div>
+
     <nav class="sidebar-nav">
       ${Object.keys(groups).map(g => `
         <div class="sidebar-group">
@@ -139,6 +150,7 @@ function renderNav() {
         </div>
       `).join('')}
     </nav>
+
     <div class="sidebar-footer">
       <button class="sidebar-item sidebar-item-logout" onclick="logout()">
         <span class="sidebar-item-icon">${icon('logout', 18)}</span>
@@ -146,6 +158,36 @@ function renderNav() {
       </button>
     </div>
   `;
+}
+
+function renderHeaderContext() {
+  const ctxEl = document.getElementById('context-block');
+  if (!ctxEl) return;
+  const r = CURRENT_USER.role_sistem;
+
+  if (r === 'admin') {
+    ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">Admin</span><span class="context-chip-value">${esc(TAHUN_AJARAN_AKTIF)}</span></div>`;
+    return;
+  }
+  if (r === 'guru' || r === 'pelatih') {
+    const ids = userEkskulIds(CURRENT_USER.id_user);
+    const roleTxt = r === 'guru' ? 'Guru Pembina' : 'Pelatih';
+    if (!ids.length) ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${roleTxt}</span><span class="context-chip-value">Belum ditugaskan</span></div>`;
+    else if (ids.length === 1) { const e = ekskulById(ids[0]); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${roleTxt}</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`; }
+    else { const names = ids.map(id => ekskulById(id)?.nama_ekskul).filter(Boolean).join(', '); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${ids.length} Ekskul</span><span class="context-chip-value">${esc(names)}</span></div>`; }
+    return;
+  }
+  if (r === 'pengurus') {
+    const e = ekskulById(CURRENT_EKSKUL_CTX);
+    ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${esc(JABATAN_LABEL[CURRENT_USER._jabatan] || 'Pengurus')}</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`;
+    return;
+  }
+  if (r === 'murid') {
+    const aktif = ANGGOTA.filter(a => a.id_user === CURRENT_USER.id_user && a.status_anggota === 'aktif');
+    if (!aktif.length) ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">Siswa</span><span class="context-chip-value">Belum ikut ekskul</span></div>`;
+    else if (aktif.length === 1) { const e = ekskulById(aktif[0].id_ekskul); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">Siswa</span><span class="context-chip-value">${esc(e ? e.nama_ekskul : '-')}</span></div>`; }
+    else { const names = aktif.map(a => ekskulById(a.id_ekskul)?.nama_ekskul).filter(Boolean).join(', '); ctxEl.innerHTML = `<div class="context-chip"><span class="context-chip-label">${aktif.length} Ekskul</span><span class="context-chip-value">${esc(names)}</span></div>`; }
+  }
 }
 
 function showTab(key) {
@@ -165,10 +207,7 @@ function showTab(key) {
     console.error(e);
     el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Error: ${esc(e.message)}</div></div>`;
   }
-  const tabs = NAV[CURRENT_USER.role_sistem] || [];
-  const cur = tabs.find(t => t.key === key);
-  const titleEl = document.getElementById('page-title');
-  if (titleEl && cur) titleEl.textContent = cur.label;
+  renderHeaderContext();
   if (window.innerWidth < 1024) closeSidebarMobile();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -193,6 +232,7 @@ window.showTab = showTab;
 window.NAV = NAV;
 window.ROUTES = ROUTES;
 window.renderNav = renderNav;
+window.renderHeaderContext = renderHeaderContext;
 window.openSidebarMobile = openSidebarMobile;
 window.closeSidebarMobile = closeSidebarMobile;
 window.toggleSidebar = toggleSidebar;
