@@ -1,9 +1,12 @@
 /* =====================================================================
-   config.js — Konstanta Aplikasi ETAM
-   CATATAN: File ini TIDAK BOLEH berisi FIREBASE_CONFIG (ada di firebase-config.js)
+   config.js — Konstanta Aplikasi ETAM (FINAL - TIDAK KONFLIK)
+   CATATAN PENTING:
+   - File ini TIDAK boleh berisi FIREBASE_CONFIG (ada di firebase-config.js)
+   - File ini TIDAK boleh ada deklarasi ganda
+   - Urutan script di index.html: firebase-config.js → config.js → ...
    ===================================================================== */
 
-/* ============ DATA ADMIN DEFAULT (untuk seeding) ============ */
+/* ============ ADMIN DEFAULT ============ */
 const ADMIN_DEFAULT = {
   id_user: 'admin_utama',
   nama_lengkap: 'Admin ETAM',
@@ -70,7 +73,11 @@ const JENIS_SESI_COLOR = {
 const LOGO_SMP = 'https://iili.io/nBiviCX.png';
 const LOGO_ETAM = 'https://iili.io/nVPEvv2.md.png';
 
-/* ============ STATE GLOBAL (MUTABLE) ============ */
+/* =====================================================================
+   STATE GLOBAL (MUTABLE) — deklarasi SEKALI, jangan diulang di file lain
+   ===================================================================== */
+
+/* State user login */
 let CURRENT_USER = null;
 let CURRENT_EKSKUL_CTX = null;
 let loginRole = 'murid';
@@ -78,7 +85,7 @@ let regRole = 'murid';
 let QR_SCANNER = null;
 let TAHUN_AJARAN_AKTIF = '2026/2027';
 
-/* ============ DATA UTAMA (diisi oleh seedIfEmpty di storage.js) ============ */
+/* Data utama */
 let USERS = [];
 let EKSKUL = [];
 let PEMBINA = [];
@@ -97,3 +104,58 @@ let NOTIFIKASI = [];
 let LOGS = [];
 let LUPA_PASSWORD = [];
 let APP_SETTINGS = {};
+
+/* Data penilaian (format A/B/C/D + template) */
+let TEMPLATE_PENILAIAN = {};   // { id_ekskul: [ {id_template, nama, aspek:[...]}, ... ] }
+let PENILAIAN = {};            // { id_ekskul: { tahun: { id_template: { id_user: {aspek:'A'|'B'|'C'|'D'} } } } }
+
+/* =====================================================================
+   HELPER: TEMPLATE PENILAIAN
+   ===================================================================== */
+
+function getTemplates(idEkskul) {
+  return TEMPLATE_PENILAIAN[idEkskul] || [];
+}
+
+function simpanTemplate(idEkskul, tpl) {
+  if (!TEMPLATE_PENILAIAN[idEkskul]) TEMPLATE_PENILAIAN[idEkskul] = [];
+  const idx = TEMPLATE_PENILAIAN[idEkskul].findIndex(x => x.id_template === tpl.id_template);
+  if (idx >= 0) TEMPLATE_PENILAIAN[idEkskul][idx] = tpl;
+  else TEMPLATE_PENILAIAN[idEkskul].push(tpl);
+  DB.set('template_penilaian', TEMPLATE_PENILAIAN);
+}
+
+function hapusTemplate(idEkskul, idTpl) {
+  if (!TEMPLATE_PENILAIAN[idEkskul]) return;
+  TEMPLATE_PENILAIAN[idEkskul] = TEMPLATE_PENILAIAN[idEkskul].filter(x => x.id_template !== idTpl);
+  if (PENILAIAN[idEkskul]) {
+    Object.keys(PENILAIAN[idEkskul]).forEach(tahun => {
+      delete PENILAIAN[idEkskul][tahun][idTpl];
+    });
+  }
+  DB.set('template_penilaian', TEMPLATE_PENILAIAN);
+  DB.set('penilaian', PENILAIAN);
+}
+
+function getNilai(idEkskul, idTpl, idUser, tahun) {
+  tahun = tahun || TAHUN_AJARAN_AKTIF;
+  return PENILAIAN[idEkskul]?.[tahun]?.[idTpl]?.[idUser] || {};
+}
+
+function simpanNilai(idEkskul, idTpl, idUser, tahun, aspekKey, nilai) {
+  if (!PENILAIAN[idEkskul]) PENILAIAN[idEkskul] = {};
+  if (!PENILAIAN[idEkskul][tahun]) PENILAIAN[idEkskul][tahun] = {};
+  if (!PENILAIAN[idEkskul][tahun][idTpl]) PENILAIAN[idEkskul][tahun][idTpl] = {};
+  if (!PENILAIAN[idEkskul][tahun][idTpl][idUser]) PENILAIAN[idEkskul][tahun][idTpl][idUser] = {};
+  if (nilai) PENILAIAN[idEkskul][tahun][idTpl][idUser][aspekKey] = nilai;
+  else delete PENILAIAN[idEkskul][tahun][idTpl][idUser][aspekKey];
+  DB.set('penilaian', PENILAIAN);
+}
+
+function warnaNilaiSelect(v) {
+  if (v === 'A') return 'color:#10B981;background:rgba(16,185,129,.1);border-color:#10B981';
+  if (v === 'B') return 'color:#3B82F6;background:rgba(59,130,246,.1);border-color:#3B82F6';
+  if (v === 'C') return 'color:#FBBF24;background:rgba(251,191,36,.1);border-color:#FBBF24';
+  if (v === 'D') return 'color:#EF4444;background:rgba(239,68,68,.1);border-color:#EF4444';
+  return '';
+}
