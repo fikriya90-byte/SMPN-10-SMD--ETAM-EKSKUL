@@ -7,16 +7,16 @@
 <title>ETAM — Ekstrakurikuler Terpadu Absensi Murid</title>
 <link rel="manifest" href="./manifest.json">
 
-<!-- Firebase SDK -->
+<!-- Firebase SDK (WAJIB) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<!-- QR -->
+<!-- QR Code generator & scanner -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-<!-- Leaflet -->
+<!-- Leaflet peta -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -30,7 +30,7 @@
 <body>
 
 <!-- ================= LOGIN ================= -->
-<div id="login-screen">
+<div id="login-screen" style="overflow-y:auto !important;overflow-x:hidden;align-items:flex-start !important;-webkit-overflow-scrolling:touch;">
   <div class="login-art-bg" aria-hidden="true">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
@@ -65,7 +65,7 @@
         <p class="brand-school">SMP Negeri 10 Samarinda</p>
       </div>
 
-      <!-- LOGIN VIEW -->
+      <!-- ================= LOGIN VIEW ================= -->
       <div id="view-login">
         <p class="role-section-label">Masuk Sebagai</p>
         <div class="role-tabs" role="tablist">
@@ -138,7 +138,7 @@
         </div>
       </div>
 
-      <!-- REGISTER VIEW -->
+      <!-- ================= REGISTER VIEW ================= -->
       <div id="view-register" class="hidden">
         <button type="button" class="back-btn" onclick="closeRegister()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -211,11 +211,11 @@
         <div class="alert alert-info" style="margin-top:14px;font-size:12px;line-height:1.6">
           <b>ℹ️ Info Pendaftaran:</b><br>
           • <b>Siswa</b>: daftar mandiri di sini, akun akan diverifikasi Pembina/Pelatih<br>
-          • <b>Guru/Pelatih</b>: akun dibuatkan oleh <b>Admin</b>. Hubungi Admin untuk mendaftar
+          • <b>Guru/Pelatih</b>: akun dibuatkan oleh <b>Admin</b>
         </div>
       </div>
 
-      <!-- FORGOT PASSWORD VIEW -->
+      <!-- ================= FORGOT PASSWORD VIEW ================= -->
       <div id="view-forgot" class="hidden">
         <button type="button" class="back-btn" onclick="closeForgot()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -238,8 +238,8 @@
             </svg>
           </button>
           <p class="text-xs" style="color:var(--text-dim);text-align:center;margin-top:14px;line-height:1.5">
-            Email reset akan dikirim dari <b>noreply@ekskul-etam.firebaseapp.com</b>.<br>
-            Cek juga folder <b>Spam</b> jika tidak muncul dalam 5 menit.
+            Email reset dikirim dari <b>noreply@ekskul-etam.firebaseapp.com</b>.<br>
+            Cek folder <b>Spam</b> jika tidak muncul dalam 5 menit.
           </p>
         </form>
       </div>
@@ -248,14 +248,22 @@
   </div>
 </div>
 
-<!-- ================= APP ================= -->
+<!-- ================= APP (SIDEBAR LAYOUT) ================= -->
 <div id="app" class="hidden app-sidebar-layout">
+
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
-  <aside id="sidebar" class="sidebar"><div id="nav-tabs"></div></aside>
+
+  <aside id="sidebar" class="sidebar">
+    <div id="nav-tabs"></div>
+  </aside>
+
   <div class="main-wrapper">
     <header class="top-header">
       <div class="top-header-inner">
-        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
+        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+
         <div class="brand-block">
           <img src="https://iili.io/nVPEvv2.md.png" alt="ETAM" class="brand-logo-etam">
           <div class="brand-text">
@@ -263,7 +271,9 @@
             <p class="brand-tagline">Ekstrakurikuler Terpadu Absensi Murid</p>
           </div>
         </div>
+
         <div class="context-block" id="context-block"></div>
+
         <div class="top-header-actions">
           <button type="button" class="header-btn" onclick="cycleTheme()" title="Ganti Tema">
             <span id="header-theme-icon"></span>
@@ -276,8 +286,10 @@
         </div>
       </div>
     </header>
+
     <main class="main-content" id="main-content"></main>
   </div>
+
   <div id="toast-container" class="toast-container"></div>
 </div>
 
@@ -285,7 +297,7 @@
 <div id="print-area"></div>
 
 <!-- ================= SCRIPTS ================= -->
-<!-- URUTAN PENTING - JANGAN DIUBAH -->
+<!-- URUTAN PENTING — JANGAN DIUBAH -->
 
 <!-- 1. Firebase Config & Firestore Sync -->
 <script src="js/firebase-config.js"></script>
