@@ -113,40 +113,98 @@ ROUTES.lupapwd = el => {
 };
 
 ROUTES.setting = el => {
-  el.innerHTML = `<div class="card mb-4"><div class="card-header"><h2 class="font-display text-base">Identitas Sekolah</h2></div>
-    <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div class="sm:col-span-2"><label class="field-label">Nama Sekolah</label><input id="s-school" class="field-input"></div>
-      <div><label class="field-label">Kepala UPT</label><input id="s-kepala" class="field-input"></div>
-      <div><label class="field-label">Koordinator Ekskul</label><input id="s-koord" class="field-input"></div>
-      <div><label class="field-label">Dinas</label><input id="s-dinas" class="field-input"></div>
-      <div><label class="field-label">Kota</label><input id="s-kota" class="field-input"></div>
-      <div class="sm:col-span-2"><label class="field-label">Alamat</label><input id="s-alamat" class="field-input"></div>
-      <div class="sm:col-span-2 flex justify-end"><button onclick="saveSettings()" class="btn btn-primary">Simpan</button></div></div></div>
-    <div class="card mb-4"><div class="card-header"><h3 class="font-display text-base">Backup & Restore</h3></div>
-    <div class="card-body flex flex-wrap gap-2">
-      <button onclick="backupAll()" class="btn btn-primary">Backup JSON</button>
-      <label class="btn btn-dark cursor-pointer">Restore<input type="file" accept=".json" onchange="restoreAll(event)" style="display:none"></label>
-      <button onclick="hapusFotoLama()" class="btn btn-danger">Hapus Foto Lama (>1 bulan)</button>
-    </div></div>
-    <div class="card"><div class="card-header"><h3 class="font-display text-base" style="color:#F87171">Zona Bahaya</h3></div>
-    <div class="card-body"><button onclick="resetAll()" class="btn btn-danger">Reset Semua Data</button></div></div>`;
+  const koordInfo = getKoordinatorInfo();
+  el.innerHTML = `
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="font-display text-base">${icon('user', 18)} Koordinator Ekstrakurikuler</h2></div>
+      <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="sm:col-span-2">
+          <label class="field-label">Nama Koordinator</label>
+          <input id="k-nama" class="field-input" value="${esc(koordInfo.nama)}" placeholder="Nama lengkap & gelar">
+        </div>
+        <div><label class="field-label">NIP</label><input id="k-nip" class="field-input" value="${esc(koordInfo.nip)}" placeholder="NIP"></div>
+        <div><label class="field-label">No. WhatsApp</label><input id="k-wa" class="field-input" value="${esc(koordInfo.wa)}" placeholder="08xx"></div>
+        <div class="sm:col-span-2">
+          <label class="field-label">Foto Koordinator (opsional)</label>
+          <input id="k-foto" type="file" accept="image/*" class="field-input" style="padding:6px">
+        </div>
+        ${koordInfo.foto ? `
+          <div class="sm:col-span-2 text-center">
+            <img src="${koordInfo.foto}" style="max-height:120px;border-radius:12px;margin:0 auto">
+            <button onclick="hapusFotoKoordinator()" class="btn btn-danger" style="margin-top:8px;padding:5px 10px;font-size:12px;">Hapus Foto</button>
+          </div>
+        ` : ''}
+        <div class="sm:col-span-2 flex justify-end">
+          <button onclick="saveKoordinator()" class="btn btn-primary">${icon('check', 14)} Simpan Koordinator</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="font-display text-base">${icon('building', 18)} Identitas Sekolah</h2></div>
+      <div class="card-body grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="sm:col-span-2"><label class="field-label">Nama Sekolah</label><input id="s-school" class="field-input"></div>
+        <div><label class="field-label">Kepala UPT</label><input id="s-kepala" class="field-input"></div>
+        <div><label class="field-label">Dinas</label><input id="s-dinas" class="field-input"></div>
+        <div><label class="field-label">Kota</label><input id="s-kota" class="field-input"></div>
+        <div class="sm:col-span-2"><label class="field-label">Alamat</label><input id="s-alamat" class="field-input"></div>
+        <div class="sm:col-span-2 flex justify-end"><button onclick="saveSettings()" class="btn btn-primary">Simpan Identitas</button></div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header"><h3 class="font-display text-base">${icon('download', 18)} Backup & Restore</h3></div>
+      <div class="card-body flex flex-wrap gap-2">
+        <button onclick="backupAll()" class="btn btn-primary">Backup JSON</button>
+        <label class="btn btn-dark cursor-pointer">Restore<input type="file" accept=".json" onchange="restoreAll(event)" style="display:none"></label>
+        <button onclick="hapusFotoLama()" class="btn btn-danger">Hapus Foto Lama (>1 bulan)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3 class="font-display text-base" style="color:#F87171">${icon('alert', 18)} Zona Bahaya</h3></div>
+      <div class="card-body"><button onclick="resetAll()" class="btn btn-danger">Reset Semua Data</button></div>
+    </div>`;
 
   $('#s-school').value = APP_SETTINGS.school_name || '';
   $('#s-kepala').value = APP_SETTINGS.kepala_upt || '';
-  $('#s-koord').value = APP_SETTINGS.koordinator_ekskul || '';
   $('#s-dinas').value = APP_SETTINGS.dinas || '';
   $('#s-kota').value = APP_SETTINGS.kota || '';
   $('#s-alamat').value = APP_SETTINGS.alamat_sekolah || '';
 
+  window.saveKoordinator = async () => {
+    APP_SETTINGS.koordinator_ekskul = $('#k-nama').value.trim();
+    APP_SETTINGS.koordinator_nip = $('#k-nip').value.trim();
+    APP_SETTINGS.koordinator_wa = $('#k-wa').value.trim();
+    const f = $('#k-foto').files[0];
+    if (f) {
+      try {
+        APP_SETTINGS.koordinator_foto = await compressImage(f, 512, 0.85);
+      } catch (err) { showToast('Gagal proses foto', 'error'); }
+    }
+    persist();
+    logAction('save_koordinator', {});
+    showToast('Data koordinator disimpan');
+    showTab('setting');
+  };
+
+  window.hapusFotoKoordinator = () => {
+    if (!confirm('Hapus foto koordinator?')) return;
+    APP_SETTINGS.koordinator_foto = '';
+    persist();
+    showTab('setting');
+    showToast('Foto dihapus', 'warning');
+  };
+
   window.saveSettings = () => {
     APP_SETTINGS.school_name = $('#s-school').value;
     APP_SETTINGS.kepala_upt = $('#s-kepala').value;
-    APP_SETTINGS.koordinator_ekskul = $('#s-koord').value;
     APP_SETTINGS.dinas = $('#s-dinas').value;
     APP_SETTINGS.kota = $('#s-kota').value;
     APP_SETTINGS.alamat_sekolah = $('#s-alamat').value;
     persist(); logAction('save_settings', {}); showToast('Disimpan');
   };
+
   window.hapusFotoLama = () => {
     if (!confirm('Hapus foto lebih dari 30 hari?')) return;
     const batas = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -154,9 +212,15 @@ ROUTES.setting = el => {
     LAPORAN_FOTO = LAPORAN_FOTO.filter(f => new Date(f.waktu).getTime() > batas);
     persist(); showTab('setting'); showToast('Hapus ' + (sebelum - LAPORAN_FOTO.length) + ' foto');
   };
-  window.resetAll = async () => { if (!confirm('Reset SEMUA data?')) return; if (!confirm('Yakin?')) return; localStorage.clear(); try { await FotoDB.clear(); } catch(e) {} location.reload(); };
-};
 
+  window.resetAll = async () => {
+    if (!confirm('Reset SEMUA data?')) return;
+    if (!confirm('Yakin?')) return;
+    localStorage.clear();
+    try { await FotoDB.clear(); } catch(e) {}
+    location.reload();
+  };
+};
 window.backupAll = () => {
   const data = { app: 'ETAM', version: 6, exported_at: new Date().toISOString(), users: USERS, ekskul: EKSKUL, pembina: PEMBINA, anggota: ANGGOTA, jurnal: JURNAL, presensi: PRESENSI, kas_setting: KAS_SETTING, kas_bayar: KAS_BAYAR, struktur: STRUKTUR_EKSKUL, struktur_arsip: STRUKTUR_ARSIP, arsip_siswa: ARSIP_SISWA, foto: LAPORAN_FOTO, konten: KONTEN, pengumuman: PENGUMUMAN, settings: APP_SETTINGS };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
