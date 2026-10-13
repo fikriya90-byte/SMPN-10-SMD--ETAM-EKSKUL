@@ -1,26 +1,8 @@
 /* =====================================================================
-   config.js — Konstanta Aplikasi ETAM (FINAL - TIDAK KONFLIK)
-   CATATAN PENTING:
-   - File ini TIDAK boleh berisi FIREBASE_CONFIG (ada di firebase-config.js)
-   - File ini TIDAK boleh ada deklarasi ganda
-   - Urutan script di index.html: firebase-config.js → config.js → ...
+   config.js — Konstanta Aplikasi ETAM
+   CATATAN: ADMIN_DEFAULT & ADMIN_DEFAULT_PASSWORD SUDAH ADA di firebase-config.js
+   JANGAN deklarasikan ulang di sini!
    ===================================================================== */
-
-/* ============ ADMIN DEFAULT ============ */
-const ADMIN_DEFAULT = {
-  id_user: 'admin_utama',
-  nama_lengkap: 'Admin ETAM',
-  email: 'admin@etamspanluh.com',
-  nis: '',
-  nisn: '',
-  nip: '',
-  no_wa: '',
-  role_sistem: 'admin',
-  kelas: '',
-  foto_profil_url: '',
-  active: true
-};
-const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
 
 /* ============ SETTING DEFAULT ============ */
 const DEFAULT_SETTINGS = {
@@ -74,10 +56,9 @@ const LOGO_SMP = 'https://iili.io/nBiviCX.png';
 const LOGO_ETAM = 'https://iili.io/nVPEvv2.md.png';
 
 /* =====================================================================
-   STATE GLOBAL (MUTABLE) — deklarasi SEKALI, jangan diulang di file lain
+   STATE GLOBAL (MUTABLE) — deklarasi SEKALI
    ===================================================================== */
 
-/* State user login */
 let CURRENT_USER = null;
 let CURRENT_EKSKUL_CTX = null;
 let loginRole = 'murid';
@@ -85,7 +66,6 @@ let regRole = 'murid';
 let QR_SCANNER = null;
 let TAHUN_AJARAN_AKTIF = '2026/2027';
 
-/* Data utama */
 let USERS = [];
 let EKSKUL = [];
 let PEMBINA = [];
@@ -105,14 +85,12 @@ let LOGS = [];
 let LUPA_PASSWORD = [];
 let APP_SETTINGS = {};
 
-/* Data penilaian (format A/B/C/D + template) */
-let TEMPLATE_PENILAIAN = {};   // { id_ekskul: [ {id_template, nama, aspek:[...]}, ... ] }
-let PENILAIAN = {};            // { id_ekskul: { tahun: { id_template: { id_user: {aspek:'A'|'B'|'C'|'D'} } } } }
+let TEMPLATE_PENILAIAN = {};
+let PENILAIAN = {};
 
 /* =====================================================================
    HELPER: TEMPLATE PENILAIAN
    ===================================================================== */
-
 function getTemplates(idEkskul) {
   return TEMPLATE_PENILAIAN[idEkskul] || [];
 }
