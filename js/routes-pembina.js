@@ -1,4 +1,6 @@
-/* routes-pembina.js — Kelola Akun & Pemetaan Pembina/Pelatih (Khusus Admin) */
+/* =====================================================================
+   routes-pembina.js — Kelola Akun & Pemetaan Pembina/Pelatih (Khusus Admin)
+   ===================================================================== */
 
 ROUTES.pembina = el => {
   if (CURRENT_USER.role_sistem !== 'admin') {
@@ -150,7 +152,7 @@ ROUTES.pembina = el => {
   setTimeout(renderDaftarPembina, 50);
 
   /* ================================================================
-     BUAT AKUN GURU/PELATIH BARU (FITUR BARU)
+     BUAT AKUN GURU/PELATIH BARU
      ================================================================ */
   window.openBuatAkunGuru = () => {
     const ekskulOptions = EKSKUL.map(e => `
@@ -172,10 +174,9 @@ ROUTES.pembina = el => {
           </div>
           <div class="card-body space-y-3">
             <div class="alert alert-info" style="font-size:12px">
-              ${icon('info', 14)} Akun yang dibuat di sini <b>langsung aktif</b> — tidak perlu verifikasi lagi. Password otomatis di-generate, bisa Anda copy dan kirimkan ke guru/pelatih via WhatsApp.
+              ${icon('info', 14)} Akun yang dibuat di sini <b>langsung aktif</b>. Password otomatis di-generate, bisa Anda copy dan kirimkan ke guru/pelatih via WhatsApp.
             </div>
 
-            <!-- DATA AKUN -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="sm:col-span-2">
                 <label class="field-label">Nama Lengkap & Gelar <span style="color:#F87171">*</span></label>
@@ -202,7 +203,6 @@ ROUTES.pembina = el => {
               </div>
             </div>
 
-            <!-- EKSKUL YANG DIBINA -->
             <div>
               <label class="field-label">Ekskul yang Dibina <span style="color:#F87171">*</span></label>
               <p class="text-xs" style="color:var(--text-dim);margin-bottom:8px">Pilih satu atau lebih ekskul</p>
@@ -236,7 +236,9 @@ ROUTES.pembina = el => {
       if (!email) return fail('Email wajib diisi');
       if (!wa) return fail('No. WhatsApp wajib diisi');
       if (!ekskulDipilih.length) return fail('Pilih minimal 1 ekskul');
-      if (USERS.some(u => u.email && u.email.toLowerCase() === email)) return fail('Email sudah terdaftar');
+      if (USERS.some(u => u.email && u.email.toLowerCase() === email)) {
+        return fail('Email sudah terdaftar. Hapus dulu akun lama di daftar bawah.');
+      }
       if (nip && USERS.some(u => u.nip && u.nip === nip)) return fail('NIP sudah terdaftar');
 
       // Generate password random
@@ -253,12 +255,14 @@ ROUTES.pembina = el => {
         nisn: '',
         nip: nip,
         password_hash: passwordHash,
+        password_plain: passwordPlain,
         no_wa: wa,
         role_sistem: role,
         kelas: '',
         foto_profil_url: '',
-        active: true,       // langsung aktif
+        active: true,
         last_login: '',
+        firebase_uid: '',
         created_at: new Date().toISOString()
       };
       USERS.push(newUser);
@@ -269,7 +273,7 @@ ROUTES.pembina = el => {
           id_pembina: uid('p'),
           id_user: newId,
           id_ekskul: idEks,
-          status_akun: 'aktif',  // langsung aktif
+          status_akun: 'aktif',
           created_at: new Date().toISOString()
         });
       });
@@ -330,14 +334,13 @@ ROUTES.pembina = el => {
   };
 
   /* ================================================================
-     COPY TEXT HELPER
+     COPY TEXT
      ================================================================ */
   window.copyText = (text) => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => showToast('Disalin: ' + text));
       } else {
-        // Fallback untuk browser lama
         const ta = document.createElement('textarea');
         ta.value = text;
         ta.style.position = 'fixed';
@@ -584,7 +587,6 @@ ROUTES.pembina = el => {
       showTab('pembina');
     };
 
-    /* ============ RESET PASSWORD USER ============================================ */
     window.resetPasswordUser = async idUser => {
       const u = userById(idUser);
       if (!u) return;
@@ -592,6 +594,7 @@ ROUTES.pembina = el => {
 
       const newPwd = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.floor(10 + Math.random() * 90);
       u.password_hash = await hashPwd(newPwd);
+      u.password_plain = newPwd;
       persist();
       logAction('reset_password_user', { idUser });
 
@@ -601,19 +604,37 @@ ROUTES.pembina = el => {
   };
 
   /* ================================================================
-     HAPUS PEMETAAN
+     HAPUS PEMETAAN — FULL HAPUS USER & EMAIL BISA DIPAKAI LAGI
      ================================================================ */
   window.hapusPembina = id => {
     const p = PEMBINA.find(x => x.id_pembina === id);
     if (!p) return;
     const u = userById(p.id_user);
     const e = ekskulById(p.id_ekskul);
-    if (!confirm(`Hapus pemetaan ${u?.nama_lengkap} dari ekskul ${e?.nama_ekskul}?`)) return;
+    if (!u) return;
+
+    const jumlahEkskul = PEMBINA.filter(x => x.id_user === p.id_user).length;
+    let pesan = `Hapus akun "${u.nama_lengkap}"?\n\n`;
+    if (jumlahEkskul > 1) {
+      pesan += `User ini masih terdaftar di ${jumlahEkskul} ekskul.\nSemua pemetaan akan dihapus.\n\n`;
+    }
+    pesan += `Akun akan dihapus PERMANEN.\nEmail "${u.email}" bisa dipakai lagi untuk daftar ulang.`;
+    
+    if (!confirm(pesan)) return;
     if (!confirm('Yakin? Tindakan ini tidak bisa dibatalkan.')) return;
-    PEMBINA = PEMBINA.filter(x => x.id_pembina !== id);
+
+    // Hapus SEMUA pemetaan user ini
+    PEMBINA = PEMBINA.filter(x => x.id_user !== p.id_user);
+    // Hapus akun user
+    USERS = USERS.filter(x => x.id_user !== p.id_user);
+    // Hapus dari anggota (kalau ada)
+    ANGGOTA = ANGGOTA.filter(x => x.id_user !== p.id_user);
+    // Hapus notifikasi user
+    NOTIFIKASI = NOTIFIKASI.filter(x => x.id_user !== p.id_user);
+
     persist();
-    logAction('hapus_pembina', { id });
-    showToast('Pemetaan dihapus', 'warning');
+    logAction('hapus_pembina_full', { id, nama: u.nama_lengkap, email: u.email });
+    showToast('Akun dihapus. Email bisa dipakai lagi.', 'success');
     showTab('pembina');
   };
 };
