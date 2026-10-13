@@ -17,20 +17,6 @@ const FIREBASE_CONFIG = {
 const ADMIN_FIREBASE_UID = "z5NU9hsv8jaS5oGd95eZxNeZpcc2";
 
 /* ================================================================
-   DATA ADMIN DEFAULT (Untuk seeding pertama kali)
-   ================================================================ */
-const ADMIN_DEFAULT = {
-  id_user: 'admin_utama',
-  nama_lengkap: 'Admin ETAM',
-  email: 'admin@etamspanluh.com',
-  role_sistem: 'admin',
-  active: true,
-  firebase_uid: ADMIN_FIREBASE_UID
-};
-
-const ADMIN_DEFAULT_PASSWORD = '#Smpn10smd';
-
-/* ================================================================
    INISIALISASI FIREBASE
    ================================================================ */
 let firebaseApp = null;
@@ -54,14 +40,11 @@ function initFirebase() {
 }
 
 /* ================================================================
-   AUTENTIKASI — Fungsi Utama
+   FUNGSI AUTENTIKASI
    ================================================================ */
-
 async function fbLogin(email, password) {
   if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) {
-    return { ok: false, msg: 'Layanan autentikasi belum siap. Silakan muat ulang halaman.' };
-  }
+  if (!firebaseAuth) return { ok: false, msg: 'Layanan autentikasi belum siap.' };
   try {
     const cred = await firebaseAuth.signInWithEmailAndPassword(email, password);
     return { ok: true, user: cred.user };
@@ -72,9 +55,7 @@ async function fbLogin(email, password) {
 
 async function fbRegister(email, password) {
   if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) {
-    return { ok: false, msg: 'Layanan autentikasi belum siap. Silakan muat ulang halaman.' };
-  }
+  if (!firebaseAuth) return { ok: false, msg: 'Layanan autentikasi belum siap.' };
   try {
     const cred = await firebaseAuth.createUserWithEmailAndPassword(email, password);
     return { ok: true, user: cred.user };
@@ -90,9 +71,7 @@ async function fbLogout() {
 
 async function fbSendReset(email) {
   if (!firebaseAuth) initFirebase();
-  if (!firebaseAuth) {
-    return { ok: false, msg: 'Layanan autentikasi belum siap. Silakan muat ulang halaman.' };
-  }
+  if (!firebaseAuth) return { ok: false, msg: 'Layanan autentikasi belum siap.' };
   try {
     await firebaseAuth.sendPasswordResetEmail(email);
     return { ok: true };
@@ -104,9 +83,7 @@ async function fbSendReset(email) {
 async function fbUpdatePassword(newPassword) {
   if (!firebaseAuth) initFirebase();
   const user = firebaseAuth.currentUser;
-  if (!user) {
-    return { ok: false, msg: 'Sesi Anda telah berakhir. Silakan login kembali.' };
-  }
+  if (!user) return { ok: false, msg: 'Sesi berakhir. Login ulang.' };
   try {
     await user.updatePassword(newPassword);
     return { ok: true };
@@ -119,39 +96,32 @@ async function fbGetCurrentUser() {
   if (!firebaseAuth) initFirebase();
   if (!firebaseAuth) return null;
   return new Promise((resolve) => {
-    const unsub = firebaseAuth.onAuthStateChanged(u => {
-      unsub();
-      resolve(u);
-    });
+    const unsub = firebaseAuth.onAuthStateChanged(u => { unsub(); resolve(u); });
   });
 }
 
 function firebaseErrorMsg(code) {
   const messages = {
-    'auth/invalid-email': 'Format email tidak valid. Mohon periksa kembali penulisan email Anda.',
-    'auth/email-already-in-use': 'Email ini sudah terdaftar. Silakan gunakan email lain atau login dengan akun tersebut.',
-    'auth/user-not-found': 'Email belum terdaftar. Mohon periksa kembali atau hubungi Admin untuk bantuan.',
-    'auth/wrong-password': 'Password yang Anda masukkan salah. Mohon periksa kembali.',
-    'auth/weak-password': 'Password terlalu lemah. Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.',
-    'auth/invalid-credential': 'Email atau password tidak sesuai. Mohon periksa kembali data Anda.',
-    'auth/invalid-login-credentials': 'Email atau password tidak sesuai. Mohon periksa kembali data Anda.',
-    'auth/requires-recent-login': 'Untuk alasan keamanan, silakan login ulang sebelum mengganti password.',
-    'auth/user-disabled': 'Akun ini sedang dinonaktifkan. Silakan hubungi Admin untuk informasi lebih lanjut.',
-    'auth/account-exists-with-different-credential': 'Email ini sudah terdaftar dengan metode login yang berbeda.',
-    'auth/too-many-requests': 'Terlalu banyak percobaan. Demi keamanan, mohon tunggu beberapa menit sebelum mencoba lagi.',
-    'auth/quota-exceeded': 'Layanan sedang sibuk. Mohon coba lagi dalam beberapa menit.',
-    'auth/network-request-failed': 'Koneksi internet bermasalah. Mohon periksa jaringan Anda dan coba lagi.',
-    'auth/operation-not-allowed': 'Metode login ini belum diaktifkan oleh Admin. Silakan hubungi pengelola sistem.',
-    'auth/unauthorized-domain': 'Domain ini belum terdaftar pada sistem autentikasi. Silakan hubungi Admin.',
-    'auth/invalid-api-key': 'Terjadi kesalahan konfigurasi sistem. Silakan hubungi Admin.',
-    'auth/app-not-authorized': 'Aplikasi ini belum diizinkan mengakses layanan autentikasi.',
-    'auth/cancelled-popup-request': 'Proses login dibatalkan. Silakan coba lagi.',
-    'auth/popup-closed-by-user': 'Jendela login ditutup sebelum selesai. Silakan coba lagi.',
-    'auth/popup-blocked': 'Jendela login diblokir oleh browser. Mohon izinkan popup untuk melanjutkan.'
+    'auth/invalid-email': 'Format email tidak valid.',
+    'auth/email-already-in-use': 'Email sudah terdaftar.',
+    'auth/user-not-found': 'Email belum terdaftar. Hubungi Admin.',
+    'auth/wrong-password': 'Password salah.',
+    'auth/weak-password': 'Password minimal 6 karakter.',
+    'auth/invalid-credential': 'Email atau password salah.',
+    'auth/invalid-login-credentials': 'Email atau password salah.',
+    'auth/requires-recent-login': 'Login ulang untuk ganti password.',
+    'auth/user-disabled': 'Akun dinonaktifkan.',
+    'auth/too-many-requests': 'Terlalu banyak percobaan. Tunggu beberapa menit.',
+    'auth/network-request-failed': 'Koneksi internet bermasalah.',
+    'auth/operation-not-allowed': 'Email/Password belum diaktifkan di Firebase Console.',
+    'auth/unauthorized-domain': 'Domain belum terdaftar di Firebase Console.',
+    'auth/invalid-api-key': 'Konfigurasi API Key salah.',
+    'auth/popup-blocked': 'Popup diblokir browser.'
   };
-  return messages[code] || 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi atau hubungi Admin.';
+  return messages[code] || 'Terjadi kesalahan: ' + code;
 }
 
+/* ============ EXPORT ============ */
 window.initFirebase = initFirebase;
 window.fbLogin = fbLogin;
 window.fbRegister = fbRegister;
