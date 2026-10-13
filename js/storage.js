@@ -18,6 +18,8 @@ function persist() {
   DB.set('tahun_ajaran_aktif', TAHUN_AJARAN_AKTIF);
   DB.set('template_penilaian', TEMPLATE_PENILAIAN);
   DB.set('penilaian', PENILAIAN);
+  // AUTO SYNC KE FIRESTORE
+  if (typeof fsScheduleSync === 'function') fsScheduleSync();
 }
 
 const FotoDB = (() => {
