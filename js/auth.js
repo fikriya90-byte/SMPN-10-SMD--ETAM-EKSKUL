@@ -1,4 +1,4 @@
-/* auth.js — Login, Register, Lupa Password */
+/* auth.js — Login, Register, Lupa Password, Restore State */
 
 function selectLoginRole(role) {
   if (!role) return;
@@ -91,6 +91,7 @@ async function handleLogin(ev) {
       CURRENT_EKSKUL_CTX = a.id_ekskul;
     }
   }
+
   localStorage.setItem('etam_session', u.email || u.nis || u.id_user);
   logAction('login', { user: u.nama_lengkap });
   document.getElementById('login-email').value = '';
@@ -140,7 +141,7 @@ async function handleRegister(ev) {
     persist();
     logAction('register_guru', { email, tipe, idEks });
     const admin = USERS.find(u => u.role_sistem === 'admin');
-    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru', `${name} mendaftar sebagai ${tipe} untuk ekskul ${ekskulById(idEks)?.nama_ekskul}. Menunggu verifikasi.`, 'warning');
+    if (admin) kirimNotif(admin.id_user, 'Pendaftaran Guru Baru', `${name} mendaftar sebagai ${tipe} untuk ekskul ${ekskulById(idEks)?.nama_ekskul}. Menunggu verifikasi.`, 'warning', { tab: 'verifikasi' });
     info.textContent = 'Pendaftaran terkirim! Tunggu verifikasi Admin.';
   }
 
@@ -166,6 +167,9 @@ function logout() {
   if (typeof stopQRScan === 'function') { try { stopQRScan(); } catch(e) {} }
   logAction('logout', {});
   localStorage.removeItem('etam_session');
+  // Hapus state persistence saat logout
+  if (typeof clearSavedTab === 'function') clearSavedTab();
+  if (typeof clearEkskulCtx === 'function') clearEkskulCtx();
   CURRENT_USER = null; CURRENT_EKSKUL_CTX = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').classList.add('hidden');
@@ -175,9 +179,23 @@ function logout() {
 function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
+
+  // Validasi ekskul context
+  ensureEkskulCtx();
+
   renderNav();
+
+  // Cek tab terakhir yang disimpan
+  const saved = getSavedTab();
   const tabs = NAV[CURRENT_USER.role_sistem] || [];
-  showTab(tabs[0] ? tabs[0].key : 'dashboard');
+  const isValid = saved && tabs.some(t => t.key === saved);
+
+  if (isValid) {
+    showTab(saved);
+    setTimeout(() => showToast('Kembali ke halaman terakhir'), 300);
+  } else {
+    showTab(tabs[0] ? tabs[0].key : 'dashboard');
+  }
 }
 
 async function loadFotosFromDB() {
