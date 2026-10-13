@@ -1,5 +1,6 @@
 /* =====================================================================
-   routes-verifikasi-siswa.js — Verifikasi Siswa Baru oleh Pembina/Pelatih/Admin
+   routes-verifikasi-siswa.js — Verifikasi Pendaftaran Siswa Baru
+   Oleh Pembina / Pelatih / Admin
    ===================================================================== */
 
 ROUTES.verifikasiSiswa = el => {
@@ -8,7 +9,6 @@ ROUTES.verifikasiSiswa = el => {
     return el.innerHTML = `<div class="card"><div class="card-body text-center py-8" style="color:#F87171">Hanya Pembina/Pelatih/Admin yang bisa mengakses.</div></div>`;
   }
 
-  // Tentukan ekskul yang bisa dikelola
   let ids;
   if (r === 'admin') ids = EKSKUL.map(e => e.id_ekskul);
   else ids = userEkskulIds(CURRENT_USER.id_user);
