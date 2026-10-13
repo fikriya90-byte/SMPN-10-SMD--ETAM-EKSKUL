@@ -7,15 +7,24 @@
 <title>ETAM — Ekstrakurikuler Terpadu Absensi Murid</title>
 <link rel="manifest" href="./manifest.json">
 
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- QR -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -56,7 +65,7 @@
         <p class="brand-school">SMP Negeri 10 Samarinda</p>
       </div>
 
-      <!-- ================= LOGIN VIEW ================= -->
+      <!-- LOGIN VIEW -->
       <div id="view-login">
         <p class="role-section-label">Masuk Sebagai</p>
         <div class="role-tabs" role="tablist">
@@ -129,7 +138,7 @@
         </div>
       </div>
 
-      <!-- ================= REGISTER VIEW (SISWA SAJA) ================= -->
+      <!-- REGISTER VIEW -->
       <div id="view-register" class="hidden">
         <button type="button" class="back-btn" onclick="closeRegister()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -174,7 +183,6 @@
             <input type="tel" id="reg-wa" class="field-input" placeholder="08xx" required>
           </div>
 
-          <!-- PILIH EKSKUL -->
           <div class="field-group">
             <label class="field-label">Pilih Ekskul yang Ingin Diikuti <span style="color:#F87171">*</span></label>
             <p class="text-xs" style="color:var(--text-dim);margin-bottom:8px">Bisa pilih lebih dari satu ekskul</p>
@@ -207,7 +215,7 @@
         </div>
       </div>
 
-      <!-- ================= FORGOT PASSWORD VIEW ================= -->
+      <!-- FORGOT PASSWORD VIEW -->
       <div id="view-forgot" class="hidden">
         <button type="button" class="back-btn" onclick="closeForgot()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -277,14 +285,26 @@
 <div id="print-area"></div>
 
 <!-- ================= SCRIPTS ================= -->
+<!-- URUTAN PENTING - JANGAN DIUBAH -->
+
+<!-- 1. Firebase Config & Firestore Sync -->
 <script src="js/firebase-config.js"></script>
+<script src="js/firestore-sync.js"></script>
+
+<!-- 2. App Config -->
 <script src="js/config.js"></script>
+
+<!-- 3. Utilities -->
 <script src="js/icons.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/photo.js"></script>
+
+<!-- 4. Auth & Nav -->
 <script src="js/auth.js"></script>
 <script src="js/nav.js"></script>
+
+<!-- 5. Routes -->
 <script src="js/routes-notifikasi.js"></script>
 <script src="js/routes-password.js"></script>
 <script src="js/routes-export.js"></script>
@@ -298,7 +318,10 @@
 <script src="js/routes-kas.js"></script>
 <script src="js/routes-penilaian.js"></script>
 <script src="js/routes-verifikasi-siswa.js"></script>
+<script src="js/routes-kelola-siswa.js"></script>
 <script src="js/routes-laporan.js"></script>
+
+<!-- 6. Bootstrap -->
 <script src="js/init.js"></script>
 
 <script>
