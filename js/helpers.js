@@ -64,10 +64,7 @@ function getPertemuanClosed(idEkskul) {
     .sort((a, b) => (a.tanggal || '').localeCompare(b.tanggal || ''));
 }
 function getKasSetting(idEkskul) {
-  return KAS_SETTING[idEkskul] || {
-    nominal: 0, periode_tipe: 'pertemuan', periode_manual: 1,
-    keterangan: '', tanggal_kesepakatan: '', aktif: false, disepakati: false
-  };
+  return KAS_SETTING[idEkskul] || { nominal: 0, periode_tipe: 'pertemuan', periode_manual: 1, keterangan: '', tanggal_kesepakatan: '', aktif: false, disepakati: false };
 }
 function getKasBayar(idUser, idEkskul, label) {
   return KAS_BAYAR.find(b => b.id_user === idUser && b.id_ekskul === idEkskul && b.periode_label === label);
@@ -85,22 +82,16 @@ function avatarGradient(seed) {
 function renderAvatar(user, size = 'md') {
   if (!user) return '';
   const cls = 'avatar avatar-' + size;
-  if (user.foto_profil_url) {
-    return `<img src="${esc(user.foto_profil_url)}" class="${cls}" style="object-fit:cover" alt="">`;
-  }
+  if (user.foto_profil_url) return `<img src="${esc(user.foto_profil_url)}" class="${cls}" style="object-fit:cover" alt="">`;
   return `<div class="${cls} ${avatarGradient(user.id_user)}">${avatarInitials(user.nama_lengkap)}</div>`;
 }
 
 function downloadCSV(rows, filename) {
-  const esc2 = v => {
-    const s = String(v ?? '');
-    return /[,"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
+  const esc2 = v => { const s = String(v ?? ''); return /[,"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const csv = rows.map(r => r.map(esc2).join(',')).join('\r\n');
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('CSV diunduh');
 }
@@ -124,10 +115,7 @@ function applyTheme() {
   if (themeMode === 'auto') actual = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
   document.documentElement.dataset.theme = actual;
   const label = themeMode === 'light' ? 'Terang' : themeMode === 'dark' ? 'Gelap' : 'Otomatis';
-  ['', '-app'].forEach(sfx => {
-    const el = $('#theme-label' + sfx);
-    if (el) el.textContent = label;
-  });
+  ['', '-app'].forEach(sfx => { const el = $('#theme-label' + sfx); if (el) el.textContent = label; });
 }
 function cycleTheme() {
   themeMode = themeMode === 'auto' ? 'dark' : themeMode === 'dark' ? 'light' : 'auto';
@@ -142,9 +130,23 @@ function closeModal() {
   if (typeof stopQRScan === 'function') { try { stopQRScan(); } catch(e) {} }
 }
 
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  if (btn) btn.innerHTML = icon(isHidden ? 'eyeOff' : 'eye', 18);
+}
+
+function initPasswordToggles() {
+  document.querySelectorAll('.password-toggle').forEach(btn => { btn.innerHTML = icon('eye', 18); });
+}
+
 window.applyTheme = applyTheme;
 window.cycleTheme = cycleTheme;
 window.closeModal = closeModal;
 window.openWA = openWA;
 window.waLink = waLink;
 window.showToast = showToast;
+window.togglePassword = togglePassword;
+window.initPasswordToggles = initPasswordToggles;
