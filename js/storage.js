@@ -1,4 +1,4 @@
-/* storage.js — DB Layer + Helper Struktur, Arsip, Koordinator, Seksi, Penilaian */
+/* storage.js — DB Layer + Helper Struktur, Arsip, Koordinator, Seksi, Penilaian + Auto Sync Firestore */
 
 const DB = {
   get(k, d) { try { const s = localStorage.getItem('etam_' + k); return s ? JSON.parse(s) : (d ?? null); } catch (e) { return d ?? null; } },
