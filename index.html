@@ -11,13 +11,16 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
+<!-- ================= LOGIN ================= -->
 <div id="login-screen">
   <div class="login-art-bg">
     <div class="blob blob-1"></div>
@@ -25,6 +28,7 @@
     <div class="blob blob-3"></div>
     <div class="grid-lines"></div>
   </div>
+
   <div class="login-card">
     <aside class="login-brand">
       <div class="brand-top">
@@ -52,107 +56,228 @@
         <p class="brand-school">SMP Negeri 10 Samarinda</p>
       </div>
 
+      <!-- ============ VIEW LOGIN ============ -->
       <div id="view-login">
         <p class="role-section-label">Masuk Sebagai</p>
         <div class="role-tabs">
-          <button type="button" class="role-tab active" data-role="murid" onclick="selectLoginRole('murid')"><span>Siswa</span></button>
-          <button type="button" class="role-tab" data-role="guru" onclick="selectLoginRole('guru')"><span>Guru / Pelatih</span></button>
-          <button type="button" class="role-tab" data-role="admin" onclick="selectLoginRole('admin')"><span>Admin</span></button>
+          <button type="button" class="role-tab active" data-role="murid" onclick="selectLoginRole('murid')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <span>Siswa</span>
+          </button>
+          <button type="button" class="role-tab" data-role="guru" onclick="selectLoginRole('guru')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>Guru / Pelatih</span>
+          </button>
+          <button type="button" class="role-tab" data-role="admin" onclick="selectLoginRole('admin')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
+            </svg>
+            <span>Admin</span>
+          </button>
         </div>
+
         <p class="role-hint" id="login-role-hint">Masuk sebagai <b>Siswa</b></p>
+
         <form id="form-login" onsubmit="handleLogin(event)">
           <div class="field-group">
-            <label class="field-label">Email / NIS</label>
-            <input type="text" id="login-email" class="field-input" placeholder="email atau NIS" required>
+            <label class="field-label">Email / NIS / NIP</label>
+            <div class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>
+              </svg>
+              <input type="text" id="login-email" class="field-input has-icon" placeholder="email, NIS, atau NIP" autocomplete="username" required>
+            </div>
           </div>
           <div class="field-group">
             <label class="field-label">Password</label>
-            <div class="password-wrap">
-              <input type="password" id="login-password" class="field-input" placeholder="Password" required>
+            <div class="password-wrap input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input type="password" id="login-password" class="field-input has-icon" placeholder="Password" autocomplete="current-password" required>
               <button type="button" class="password-toggle" onclick="togglePassword('login-password', this)" tabindex="-1"></button>
             </div>
           </div>
           <div id="login-error" class="alert alert-error hidden"></div>
-          <button type="submit" class="btn btn-primary btn-block">Masuk</button>
+          <button type="submit" class="btn btn-primary btn-block">
+            <span>Masuk</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
         </form>
+
         <div class="login-register" id="login-register-row">
           <span>Belum punya akun?</span>
           <a onclick="openRegister()">Daftar</a>
           <span>·</span>
           <a onclick="openForgot()">Lupa Password</a>
         </div>
+
         <div class="login-footer">
-          <span class="login-footer-label">Tema</span>
-          <button type="button" class="theme-toggle-btn" onclick="cycleTheme()"><span id="theme-label">Otomatis</span></button>
+          <span class="login-footer-label">Tema tampilan</span>
+          <button type="button" class="theme-toggle-btn" onclick="cycleTheme()">
+            <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            <span id="theme-label">Otomatis</span>
+          </button>
         </div>
       </div>
 
+      <!-- ============ VIEW REGISTER ============ -->
       <div id="view-register" class="hidden">
-        <button type="button" class="back-btn" onclick="closeRegister()">Kembali</button>
+        <button type="button" class="back-btn" onclick="closeRegister()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Kembali ke Login
+        </button>
         <h2 class="register-title">Daftar Akun</h2>
+        <p class="register-subtitle">Pilih tipe akun Anda.</p>
+
         <div class="role-tabs" style="margin-bottom:14px">
-          <button type="button" class="role-tab active" id="reg-tab-murid" onclick="selectRegRole('murid')"><span>Siswa</span></button>
-          <button type="button" class="role-tab" id="reg-tab-guru" onclick="selectRegRole('guru')"><span>Guru / Pelatih</span></button>
-          <button type="button" class="role-tab" style="opacity:.4;pointer-events:none"><span>Admin</span></button>
+          <button type="button" class="role-tab active" id="reg-tab-murid" onclick="selectRegRole('murid')">
+            <span>Siswa</span>
+          </button>
+          <button type="button" class="role-tab" id="reg-tab-guru" onclick="selectRegRole('guru')">
+            <span>Guru / Pelatih</span>
+          </button>
+          <button type="button" class="role-tab" style="opacity:.4;pointer-events:none">
+            <span>Admin</span>
+          </button>
         </div>
+
         <form id="form-register" onsubmit="handleRegister(event)">
-          <div class="field-group"><label class="field-label">Nama Lengkap</label><input type="text" id="reg-name" class="field-input" required></div>
-          <div class="field-group"><label class="field-label">Email</label><input type="email" id="reg-email" class="field-input" required></div>
+          <div class="field-group">
+            <label class="field-label">Nama Lengkap</label>
+            <input type="text" id="reg-name" class="field-input" placeholder="Nama lengkap & gelar" required>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Email</label>
+            <input type="email" id="reg-email" class="field-input" placeholder="nama@email.com" required>
+          </div>
+
+          <!-- FIELD MURID -->
           <div id="reg-fields-murid">
-            <div class="field-group"><label class="field-label">NIS</label><input type="text" id="reg-nis" class="field-input"></div>
-            <div class="field-group"><label class="field-label">NISN</label><input type="text" id="reg-nisn" class="field-input"></div>
-            <div class="field-group"><label class="field-label">Kelas</label>
+            <div class="field-group">
+              <label class="field-label">NIS</label>
+              <input type="text" id="reg-nis" class="field-input" placeholder="Nomor Induk Siswa">
+            </div>
+            <div class="field-group">
+              <label class="field-label">NISN (opsional)</label>
+              <input type="text" id="reg-nisn" class="field-input" placeholder="NISN">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Kelas</label>
               <select id="reg-kelas" class="field-input">
-                <option value="">Pilih</option>
-                <option>7A</option><option>7B</option><option>7C</option><option>7D</option>
-                <option>7E</option><option>7F</option><option>7G</option><option>7H</option>
-                <option>8A</option><option>8B</option><option>8C</option><option>8D</option>
-                <option>9A</option><option>9B</option><option>9C</option><option>9D</option>
-              </select></div>
+                <option value="">Pilih Kelas</option>
+                <option>7A</option><option>7B</option><option>7C</option><option>7D</option><option>7E</option>
+                <option>7F</option><option>7G</option><option>7H</option><option>7I</option><option>7J</option>
+                <option>8A</option><option>8B</option><option>8C</option><option>8D</option><option>8E</option>
+                <option>8F</option><option>8G</option><option>8H</option><option>8I</option><option>8J</option>
+                <option>9A</option><option>9B</option><option>9C</option><option>9D</option><option>9E</option>
+                <option>9F</option><option>9G</option><option>9H</option><option>9I</option><option>9J</option>
+              </select>
+            </div>
           </div>
+
+          <!-- FIELD GURU/PELATIH -->
           <div id="reg-fields-guru" class="hidden">
-            <div class="field-group"><label class="field-label">Tipe</label>
-              <select id="reg-tipe-guru" class="field-input"><option value="guru">Guru</option><option value="pelatih">Pelatih</option></select></div>
-            <div class="field-group"><label class="field-label">Ekskul</label>
-              <select id="reg-ekskul" class="field-input"><option value="">Pilih</option></select></div>
+            <div class="field-group">
+              <label class="field-label">Tipe</label>
+              <select id="reg-tipe-guru" class="field-input">
+                <option value="guru">Guru</option>
+                <option value="pelatih">Pelatih</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">NIP (opsional)</label>
+              <input type="text" id="reg-nip" class="field-input" placeholder="Kosongkan jika tidak ada NIP">
+              <p class="text-xs" style="color:var(--text-dim);margin-top:4px">Kosongkan jika belum ada NIP / bukan PNS</p>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Ekskul yang Dibina</label>
+              <select id="reg-ekskul" class="field-input">
+                <option value="">Pilih Ekskul</option>
+              </select>
+            </div>
           </div>
-          <div class="field-group"><label class="field-label">No. WhatsApp</label><input type="tel" id="reg-wa" class="field-input" required></div>
+
+          <div class="field-group">
+            <label class="field-label">No. WhatsApp</label>
+            <input type="tel" id="reg-wa" class="field-input" placeholder="08xx" required>
+          </div>
           <div class="field-group">
             <label class="field-label">Password</label>
             <div class="password-wrap">
-              <input type="password" id="reg-password" class="field-input" minlength="6" required>
+              <input type="password" id="reg-password" class="field-input" placeholder="Min 6 karakter" required minlength="6">
               <button type="button" class="password-toggle" onclick="togglePassword('reg-password', this)" tabindex="-1"></button>
             </div>
           </div>
           <div id="reg-error" class="alert alert-error hidden"></div>
           <div id="reg-info" class="alert alert-info hidden"></div>
-          <button type="submit" class="btn btn-primary btn-block">Daftar</button>
+          <button type="submit" class="btn btn-primary btn-block">
+            <span>Daftar Sekarang</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
         </form>
       </div>
 
+      <!-- ============ VIEW FORGOT ============ -->
       <div id="view-forgot" class="hidden">
-        <button type="button" class="back-btn" onclick="closeForgot()">Kembali</button>
+        <button type="button" class="back-btn" onclick="closeForgot()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Kembali ke Login
+        </button>
         <h2 class="register-title">Lupa Password</h2>
-        <p class="register-subtitle">Masukkan email atau NIS.</p>
+        <p class="register-subtitle">Masukkan email atau NIS/NIP. Admin akan mereset password Anda.</p>
         <form id="form-forgot" onsubmit="handleForgot(event)">
-          <div class="field-group"><label class="field-label">Email / NIS</label><input type="text" id="forgot-input" class="field-input" required></div>
+          <div class="field-group">
+            <label class="field-label">Email / NIS / NIP</label>
+            <input type="text" id="forgot-input" class="field-input" required>
+          </div>
           <div id="forgot-info" class="alert alert-info hidden"></div>
-          <button type="submit" class="btn btn-primary btn-block">Kirim</button>
+          <button type="submit" class="btn btn-primary btn-block">
+            <span>Kirim Permintaan</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
         </form>
       </div>
+
     </section>
   </div>
 </div>
 
+<!-- ================= APP (SIDEBAR LAYOUT) ================= -->
 <div id="app" class="hidden app-sidebar-layout">
+
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
-  <aside id="sidebar" class="sidebar"><div id="nav-tabs"></div></aside>
+
+  <aside id="sidebar" class="sidebar">
+    <div id="nav-tabs"></div>
+  </aside>
+
   <div class="main-wrapper">
+
+    <!-- HEADER -->
     <header class="top-header">
       <div class="top-header-inner">
         <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
           <span></span><span></span><span></span>
         </button>
+
+        <!-- IDENTITAS ETAM -->
         <div class="brand-block">
           <img src="https://iili.io/nVPEvv2.md.png" alt="ETAM" class="brand-logo-etam">
           <div class="brand-text">
@@ -160,7 +285,11 @@
             <p class="brand-tagline">Ekstrakurikuler Terpadu Absensi Murid</p>
           </div>
         </div>
+
+        <!-- KONTEKS EKSKUL AKTIF -->
         <div class="context-block" id="context-block"></div>
+
+        <!-- ACTIONS -->
         <div class="top-header-actions">
           <button type="button" class="header-btn" onclick="cycleTheme()" title="Ganti Tema">
             <span id="header-theme-icon"></span>
@@ -173,14 +302,18 @@
         </div>
       </div>
     </header>
+
+    <!-- MAIN CONTENT -->
     <main class="main-content" id="main-content"></main>
   </div>
+
   <div id="toast-container" class="toast-container"></div>
 </div>
 
 <div id="modal-root"></div>
 <div id="print-area"></div>
 
+<!-- ================= SCRIPTS ================= -->
 <script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script src="js/helpers.js"></script>
@@ -201,6 +334,7 @@
 <script src="js/routes-kas.js"></script>
 <script src="js/routes-laporan.js"></script>
 <script src="js/init.js"></script>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
